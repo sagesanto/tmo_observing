@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools >= 77.0.3","setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tmo_obs"
+description = "Scripts and utils for Table Mountain Observatory"
+authors = [
+    {name="Sage Santomenna", email = "sage.santomenna@gmail.com"},
+]
+dynamic = ["version"]
+readme = "README.md"
+requires-python = ">=3.9"
+license-files = ["LICENSE"]
+license="BSD-3-Clause"
+dependencies = [
+    'astral',
+    'astroplan',
+    'astropy',
+    'astroquery',
+    'bs4',
+    'colorlog',
+    'matplotlib',
+    'numpy',
+    'pandas',
+    'psutil',
+    'python-dotenv',
+    'pytz',
+    'requests',
+    'scikit-image',
+    'scipy',
+    'seaborn',
+    'shapely',
+    'tomli',
+    'tomlkit',
+    'tqdm',
+]
+
+[tool.setuptools.package-data]
+tmo_obs = ["config/stub.toml.example","config/logging.json"]
+
+[project.scripts]
+horizons_scheduler = 'tmo_obs.horizons_scheduler:main'
+observe = 'tmo_obs.observe:main'
+autofocus = 'tmo_obs.autofocus:main'
+sageslice = 'tmo_obs.tools.sageslice:main'
+imstat_deluxe = 'tmo_obs.tools.imstat_deluxe:main'
+imhead = 'tmo_obs.tools.imhead:main'
+hselect = 'tmo_obs.tools.hselect:main'
+
+[project.urls]
+Homepage = "https://github.com/sagesanto/sika"
+
+[tool.setuptools_scm]
