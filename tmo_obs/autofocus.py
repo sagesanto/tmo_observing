@@ -582,7 +582,8 @@ def run(params, logger):
                 logger.info(cam_params)
                 focus_and_capture(params['directory'], exptimes, 1, params['prefix'], 'focusloop',
                                 focuses, syntrack_client, scope, append_datetime=params['no_datetime'],
-                                do_bin2fits= not params['skip_bin2fits'], **cam_params)
+                                do_bin2fits=True, skip_temp=params['skip_temp'],
+                                skip_sqm=params['skip_sqm'], **cam_params)
     
     # Skip focus-vec if --skip_focus_vec is passed
     # Has to input --focus-vec flag as well
@@ -676,22 +677,6 @@ def run(params, logger):
 
     return
 
-# def make_logger(log_path, log_filename):
-#     logger = get_logger(log_path, log_filename)
-
-#     formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', '%Y-%m-%d %H:%M:%S')
-#     stream_handler = logging.StreamHandler()
-#     file_handler = logging.FileHandler(os.fspath('obs.log'),mode='a')
-#     stream_handler.setFormatter(formatter)
-#     file_handler.setFormatter(formatter)
-
-#     logger.addHandler(stream_handler)
-#     logger.addHandler(file_handler)
-#     logger.setLevel(logging.INFO)
-
-#     return logger
-    
-
 # Argument parser
 # ------------------------
 def main():
@@ -715,18 +700,19 @@ def main():
     parser.add_argument('--exposure', default=2.0, type=float, help='exposure time (sec); default to 2 sec')
     parser.add_argument('--filter', default='CLEAR', type=str, help='filter name', choices=['V', 'R', '50NM', 'SHUTTER', 'CLEAR', 'NONE'])
     parser.add_argument('--no-datetime', help='Disable date/time suffix', action='store_false')
-    parser.add_argument('--skip-bin2fits', action='store_true', default=False, help='skip bin2fits conversion; please do not change this flag')
     parser.add_argument('--syntrack-ip', type=str, action='store', default=photometrics.SYNTRACK_IP, help='SynTrack server IP')
     parser.add_argument('--syntrack-port', type=int, action='store', default=photometrics.SYNTRACK_PORT, help='SynTrack server port')
     parser.add_argument('--capture-dir-prefix', type=str, action='store', default='/media', help='data source directory prefix')
     parser.add_argument('--metadata-filename', type=str, action='store', default='Metadata.db',help='SynTrack metadata file name')
-    parser.add_argument('--log-path', type=str, action='store', default='/media/processor/ssdraid0/pomona/logs')
-    parser.add_argument('--log-filename', type=str, action='store', default='pomona.log')
     parser.add_argument('--skip-filter', action='store_true', default=False, help='skip filter wheel commands')
     parser.add_argument("--show_in_browser", type=bool, help = "show photometry datatable in Firefox; default to False", default=False)
 
     # Camera being used
     parser.add_argument('--camera', type=str, choices=['photometrics', 'ximea'], default='ximea', help='camera to use')
+    
+
+    parser.add_argument('--skip-temp', action='store', type=bool, default=None, help="Don't attempt to get dome temperature reading while taking image")
+    parser.add_argument('--skip-sqm', action='store', type=bool, default=None, help="Don't attempt to get seeing reading while taking image")
 
     # Focusloop arguments
     parser.add_argument('--skip-focus-vec', action='store_true', default=False, help='skip focus-vec before photometry curve; for debugging')
@@ -766,18 +752,22 @@ def main():
 
     # parse arguments
     args = vars(parser.parse_args())
+    
+    for k in ['skip_sqm','skip_temp']:
+        if args[k] is None:
+            args[k] = config.get(k.upper(),False)
+
+    for k in ['operation_mode','analog_gain','binning_mode','binning_size']:
+        if args[k] is None:
+            args[k] = autofocus_cfg[k]
 
     # set up detector size
     if args['roi_height'] is None:
         args['roi_height'] = int(sensor_height / int(args['binning_size'][2]))
     if args['roi_width'] is None:
         args['roi_width'] = int(sensor_width / int(args['binning_size'][0]))
-        
-    for k in ['operation_mode','analog_gain','binning_mode','binning_size']:
-        if args[k] is None:
-            args[k] = autofocus_cfg[k]
-
-    logger = configure_logger('autofocus',os.fspath('obs.log'))
+      
+    logger = configure_logger('autofocus','obs.log')
     #logger = make_logger(args['log_path'], args['log_filename'])
     
     outdir = args['directory']
