@@ -511,13 +511,11 @@ def observe(args):
                     analysis_type = analysis.get('analysis_type')
                     if analysis_type is None:
                         raise ValueError(f'{row["Target"]} row has analysis True but is missing an analysis_type config keyword!')
-                    analysis_type = input_to_enum(analysis_type.lower(), 'analysis type', ResultsDbType) 
                     
-                    if analysis_type:
-                        results_type = ResultsDbType[analysis_type] 
-                        linux_dirname_base = linux_dirname.split(os.sep)[-1]  # this will be something like '20260424'
-                        results_db_path = generate_results_path(results_type, linux_dirname_base, RESULTS_BASEPATHS)
-                        load_results_db_if_not_open(results_db_path,analysis_type,syntrack_conn)
+                    results_type = ResultsDbType[analysis_type] 
+                    linux_dirname_base = linux_dirname.split(os.sep)[-1]  # this will be something like '20260424'
+                    results_db_path = generate_results_path(results_type, linux_dirname_base, RESULTS_BASEPATHS)
+                    load_results_db_if_not_open(results_db_path,results_type,syntrack_conn)
                     
                     logger.info("Acquiring science data...")
                     capture_single(
