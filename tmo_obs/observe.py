@@ -91,9 +91,9 @@ def load_results_db_if_not_open(db_path:str, analysis_type:ResultsDbType, conn:P
         logger.info(f"Results database {db_path} has already been loaded - moving on without loading it again.")
         return
     # load the requested results db
-    logger.info(f"Opening results database {db_path} for analysis type '{analysis_type.value}'")
-    conn.open_result_db(db_path, analysis_type.value)
-    time.sleep(3)
+    logger.info(f"Opening results database {db_path} for analysis type '{analysis_type.name}' ({analysis_type.value}0")
+    conn.open_result_db(db_path, analysis_type.name)
+    time.sleep(3)  # ugh
     
 def change_archive_journal_mode_if_necessary(conn:PySynTrack_Interface):
     # changes the sqlite db journal mode to 'delete' to allow camera control to read from the db while syntrack is using it 
