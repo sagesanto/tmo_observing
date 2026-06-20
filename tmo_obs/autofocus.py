@@ -1,26 +1,19 @@
-import warnings
-warnings.filterwarnings('ignore', module='astropy.table.table')
-
-# ---------------------------------------------------- Image Segmentation ----------------------------------------------------
 import sys, os
-
-VERSION = __file__.split('_')[-1]
-
-from astropy.convolution import Gaussian2DKernel, convolve
-from astropy.stats import gaussian_fwhm_to_sigma
-from photutils.segmentation import detect_sources
-from astropy.io import fits
-from photutils.segmentation import deblend_sources
-from astropy.stats import sigma_clipped_stats, SigmaClip
-import numpy as np
-from astropy.table import Table, vstack
-from astropy.modeling import models, fitting
-from photutils.segmentation import SourceCatalog
-import matplotlib.pyplot as plt
-import tomli
-import os
 import argparse
 from glob import glob
+import logging
+
+import numpy as np
+import matplotlib.pyplot as plt
+from astropy.convolution import Gaussian2DKernel, convolve
+from astropy.stats import gaussian_fwhm_to_sigma, sigma_clipped_stats, SigmaClip
+from astropy.table import Table, vstack
+from astropy.modeling import models, fitting
+from astropy.io import fits
+from photutils.segmentation import detect_sources, deblend_sources, SourceCatalog
+import tomli
+
+from tmo_obs.config import load_config, configure_logger
 
 import photometrics
 from photometrics.logger import get_logger
@@ -30,9 +23,11 @@ from photometrics.fli_filterwheel import FLIFilterWheel
 from photometrics.syntrack_client import SynTrackClient
 from photometrics.pysyntrack_interface import PySynTrack_Interface
 from photometrics.camera_control import focus_and_capture
-from tmo_obs.config import load_config, configure_logger
-import logging
 
+import warnings
+warnings.filterwarnings('ignore', module='astropy.table.table')
+
+# VERSION = __file__.split('_')[-1]
 
 def Image_Segmentation(data, threshold, npixels):
     # Convolve the data with a 2D circular Gaussian kernel with a FWHM of 3 pixels to smooth the image prior to thresholding
@@ -492,7 +487,8 @@ def run(params, logger):
     # -----------------------------
     if params['skip_focus_vec'] == False:
         """entry point for take_images"""
-        logger.info(f'Running autofocus {VERSION}.')
+        logger.info(f'Running autofocus.')
+        # logger.info(f'Running autofocus {VERSION}.')
         if not params['skip_filter']:
             # move filter wheel
             logger.info('Moving filter wheel to : %s' % params['filter'].upper())

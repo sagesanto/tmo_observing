@@ -61,7 +61,7 @@ class ResultsDbType(Enum):
     NEO = "Synthetic Tracking"  # NEOs or GEOs
 
 import logging
-from tmo_obs.utils import configure_logger
+from tmo_obs.config import configure_logger
 
 logger = configure_logger("observer","obs.log")
     
