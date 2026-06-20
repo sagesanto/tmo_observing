@@ -3,7 +3,7 @@ import numpy as np
 from os.path import join
 import numpy.typing as npt
 import json
-from datetime import datetime, timezone, timedelta, UTC
+from datetime import datetime, timezone, timedelta
 
 from astropy.coordinates import AltAz, Angle, EarthLocation, SkyCoord
 from astropy import units as u
@@ -11,7 +11,7 @@ from astropy.units import Quantity
 from astropy.time import Time
 import pytz
 from collections.abc import Iterable
-from pytz import UTC as dtUTC
+from pytz import UTC
 from tmo_obs.config import data_path
 
 from astral import LocationInfo, Observer
@@ -76,13 +76,13 @@ def file_timestamp(dt:datetime=None):
 
 def current_dt_utc():
     try:
-        return datetime.now(dtUTC)
+        return datetime.now(UTC)
     except: 
-        return datetime.utcnow().replace(tzinfo=dtUTC)
+        return datetime.utcnow().replace(tzinfo=UTC)
 
 def jd_to_dt(hjd):
     time = Time(hjd, format='jd', scale='tdb')
-    return time.to_datetime().replace(tzinfo=dtUTC)
+    return time.to_datetime().replace(tzinfo=UTC)
 
 def dt_to_jd(datetime):
     return Time(datetime).jd
@@ -94,7 +94,7 @@ def get_current_sidereal_time(locationInfo=tmo_loc,kind="mean"):
 
 def dateToSidereal(dt: datetime, current_sidereal_time):
     """Apply an offset to get a sidereal time from a datetime object, using the current sidereal time as a reference. Assumes the current sidereal time is, in fact, current."""
-    timeDiff = dt.astimezone(dtUTC) - current_dt_utc()
+    timeDiff = dt.astimezone(UTC) - current_dt_utc()
     sidereal_factor = 1.0027
     st = current_sidereal_time + Angle(str(timeDiff.total_seconds() * sidereal_factor / 3600) + "h")
     # st = st.wrap_at(360 * u.deg)
@@ -224,8 +224,8 @@ def zenith_slew_required(bbox:geometry.Polygon, ra_i:float, dec_i:float, ra_f:fl
     """Determine whether a slew between (ra_i, dec_i) and (ra_f, dec_f) at time obstime would involve crossing outside of the supplied horizon box (bbox), requiring instead an intermediate slew to zenith"""
     lst = get_current_sidereal_time()
     # the assumption here is that the slew is relatively short so that obstime is basically the same at the beginning and end of the slew. this should already be fine; the bbox buffer makes it even more fine
-    ha_i = get_hour_angle(ra_i, obstime, lst)
-    ha_f = get_hour_angle(ra_f, obstime, lst)
+    ha_i = get_hour_angle(ra_i, obstime, lst).to_value('degree')
+    ha_f = get_hour_angle(ra_f, obstime, lst).to_value('degree')
     slew = points_along_slew(ha_i, dec_i, ha_f, dec_f)
     line = geometry.LineString(slew)
     return not bbox.contains(line)

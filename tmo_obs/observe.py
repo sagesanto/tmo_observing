@@ -98,7 +98,7 @@ def load_results_db_if_not_open(db_path:str, analysis_type:ResultsDbType, conn:P
 def change_archive_journal_mode_if_necessary(conn:PySynTrack_Interface):
     # changes the sqlite db journal mode to 'delete' to allow camera control to read from the db while syntrack is using it 
     archive_settings = conn.get_archive_settings()
-    if archive_settings['journalmode'] == 'delete':
+    if archive_settings.get('journalmode') == 'delete':
         logger.info("Archive journal mode is already set correctly - not setting it." )
         return
     logger.info('Setting archive journal mode')
@@ -509,6 +509,10 @@ def observe(args):
                     
                     perform_analysis = bool(analysis)  # if we got an analysis dict from the config, we are performing analysis
                     analysis_type = analysis.get('analysis_type')
+                    if analysis_type is None:
+                        raise ValueError(f'{row["Target"]} row has analysis True but is missing an analysis_type config keyword!')
+                    analysis_type = input_to_enum(analysis_type.lower(), 'analysis type', ResultsDbType) 
+                    
                     if analysis_type:
                         results_type = ResultsDbType[analysis_type] 
                         linux_dirname_base = linux_dirname.split(os.sep)[-1]  # this will be something like '20260424'
