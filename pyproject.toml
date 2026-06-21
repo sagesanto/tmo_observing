@@ -48,6 +48,7 @@ sageslice = 'tmo_obs.tools.sageslice:main'
 imstat_deluxe = 'tmo_obs.tools.imstat_deluxe:main'
 imhead = 'tmo_obs.tools.imhead:main'
 hselect = 'tmo_obs.tools.hselect:main'
+lst = 'tmo_obs.tools.lst:main'
 
 [project.urls]
 Homepage = "https://github.com/sagesanto/sika"
