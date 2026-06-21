@@ -49,6 +49,7 @@ imstat_deluxe = 'tmo_obs.tools.imstat_deluxe:main'
 imhead = 'tmo_obs.tools.imhead:main'
 hselect = 'tmo_obs.tools.hselect:main'
 lst = 'tmo_obs.tools.lst:main'
+hourangle = 'tmo_obs.tools.hourangle:main'
 
 [project.urls]
 Homepage = "https://github.com/sagesanto/sika"

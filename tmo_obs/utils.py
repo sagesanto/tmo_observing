@@ -1,29 +1,27 @@
-from shapely import geometry
-import numpy as np
+import sys, os, re
 from os.path import join
-import numpy.typing as npt
 import json
+from collections.abc import Iterable
 from datetime import datetime, timezone, timedelta
+import pytz
+from pytz import UTC
+import inspect
+from functools import wraps
+
+import numpy as np
+import numpy.typing as npt
+from shapely import geometry
 
 from astropy.coordinates import AltAz, Angle, EarthLocation, SkyCoord
 from astropy import units as u
 from astropy.units import Quantity
 from astropy.time import Time
-import pytz
-from collections.abc import Iterable
-from pytz import UTC
-from tmo_obs.config import data_path
 
 from astral import LocationInfo, Observer
-from astral.sun import sun
 from skyfield import almanac
 from skyfield.api import wgs84, Loader
 
-
-import inspect
-from functools import wraps
-import logging
-import logging.config
+from tmo_obs.config import data_path
 
 
 LATITUDE = 34.3819
@@ -105,6 +103,8 @@ def ensure_angle(value, quantity_name=None, assume_unit=u.deg) -> Angle:
     if isinstance(value, Angle):
         return value
     try:
+        if isinstance(value, str) or isinstance(value, tuple):
+            return Angle(value)
         value.to(assume_unit)
         return Angle(value)
     except Exception as e:
@@ -135,6 +135,25 @@ def ensure_angles(func):
             
         return func(*bound.args, **bound.kwargs)
     return wrapper
+
+
+def input_to_angle(text, hms=True):
+    """
+    Try to convert user string into datetime. developed for use in Maestro, may be generally useful
+    :rtype: Angle
+    """
+    try:
+        return ensure_angle(float(text))
+    except:
+        pass
+    dh, minutes, *seconds = map(float, [t for t in re.split("[:dhms]", text) if t])
+    sign = text[0] if text[0] in ("+", "-") else ""
+    if hms:
+        text = f"{sign}{abs(int(dh))}h{int(minutes)}m{seconds[0]}s" if seconds else f"{sign}{abs(int(dh))}h{int(minutes)}m"
+    else:
+        text = f"{sign}{abs(int(dh))}d{int(minutes)}m{seconds[0]}s" if seconds else f"{sign}{abs(int(dh))}d{int(minutes)}m"
+    return ensure_angle(text)
+    
 
 def get_current_hour_angle(ra:Angle, location:LocationInfo=tmo_loc):
     """Gets the current hour angle of a target with the given ra. See also get_hour_angle

@@ -6,12 +6,15 @@ from astral import LocationInfo, Observer
 from datetime import datetime
 from pytz import UTC
 
-from tmo_obs.utils import get_current_sidereal_time, dateToSidereal, current_dt_utc, tmo_loc, parse_time_arg
+from tmo_obs.utils import ( get_current_sidereal_time, dateToSidereal, current_dt_utc, tmo_loc, 
+                           parse_time_arg, get_current_hour_angle, get_hour_angle, input_to_angle )
 
 def main():
-    parser = ArgumentParser(description="Get the local sidereal time, now or in the future.")
+    parser = ArgumentParser(description="Get the hour angle of a target with the provided RA, now or in the future")
 
-    coord_group = parser.add_argument_group("coordinates", "Provide both latitude and longitude to get LST at sites other than TMO, or neither for TMO")
+    parser.add_argument('ra', type=str, help='RA of the target, in hms, decimal deg, or colon-separated format')
+
+    coord_group = parser.add_argument_group("location", "Provide both latitude and longitude to get LST at sites other than TMO, or neither for TMO")
     coord_group.add_argument("--lat", type=float, required=False, help="Decimal latitude, deg")
     coord_group.add_argument("--lon", type=float, required=False, help="Decimal longitude, deg")
     
@@ -26,6 +29,9 @@ def main():
     
     args = parser.parse_args()
     
+    if (args.lat is None) != (args.lon is None):
+        parser.error("Both --lat and --lon must be provided together, or neither")
+
     time = None
     if args.time is not None:
         time = parse_time_arg(args.time)
@@ -33,14 +39,10 @@ def main():
             if 'now' in args.time:
                 pass
             else:
-                # assume that the date that we got from parse_time_arg (which is utc by default) is
-                # actually supposed to be a local time obj. get that local time as utc
                 local_tz = datetime.now().astimezone().tzinfo
                 time = time.replace(tzinfo=local_tz).astimezone(UTC)
-    
-    # validate that both lat and lon are provided, or neither
-    if (args.lat is None) != (args.lon is None):
-        parser.error("Both --lat and --lon must be provided together, or neither")
+                # assume that the date that we got from parse_time_arg (which is utc by default) is
+                # actually supposed to be a local time obj. get that local time as utc    
         
     loc = tmo_loc
     if args.lat is not None:
@@ -48,19 +50,22 @@ def main():
                         latitude=args.lat,longitude=args.lon)
     
     lst = get_current_sidereal_time(loc)
-    if time is not None:
-        lst = dateToSidereal(time, lst)
+    
+    RA = input_to_angle(args.ra,hms=True)
+    
+    if time is None:
+        time = datetime.now(UTC)
+    ha = get_hour_angle(RA, time, lst, loc)    
     
     if args.degrees:
-        print(f"{lst.to_value('deg'):.2f}")
-        exit(0)
+        print(f"{ha.to_value('deg'):.2f}")
+        return
     
     if args.decimal_hours:
         kwargs = dict(decimal=True,precision=4)
     else:
         kwargs = dict(sep=(':' if args.sexagesimal else 'hms'), precision=2)
-    print(lst.to_string(**kwargs))
+    print(ha.to_string(**kwargs))
         
 if __name__ == "__main__":
     sys.exit(main())
-    
