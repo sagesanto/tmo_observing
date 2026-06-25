@@ -13,7 +13,7 @@ def main():
 
     parser.add_argument('angles', type=str, nargs='+', help='Angles to convert, in hms/dms, decimal deg, or colon-separated format.')
     parser.add_argument('--precision','-p', type=int, default=None,help="Precision of the output. Default is 5 places for decimal degrees or hours and 0 for DMS, HMS, and sexagesimal")
-    parser.add_argument('--copy','-c',action='store_true',help="Copy the output to clipboard in addition to printing it. Only applicable when: used with the raw argument AND using auto formatting OR the number of requested output formats is one.")
+    parser.add_argument('--copy','-c',action='store_true',help="Copy the output to clipboard in addition to printing it. Only applicable when: used with the raw argument using auto formatting OR (using raw AND the number of requested output formats is one).")
     parser.add_argument('--raw','-r',action='store_true',help="Print only the angles, with no additional information")
     
     format = parser.add_argument_group("Output format", "If not provided, will automatically choose output format based on input format")
@@ -41,11 +41,11 @@ def main():
             output_fmt = AngleFormat.DEGREES if current_fmt != AngleFormat.DEGREES else AngleFormat.HMS
             fmted_angs.append(format_angle_str(ang, output_fmt, args.precision))
             table.add_column(f"'{input_ang}'", footer=output_fmt.name)
+        raw_outstr = ' '.join(fmted_angs)
+        if args.copy:
+            copy_to_clipboard(raw_outstr)
         if args.raw:
-            outstr = ' '.join(fmted_angs)
-            print(outstr)
-            if args.copy:
-                copy_to_clipboard(outstr)
+            print(raw_outstr)
             exit(0)
         else:
             table.add_row(*fmted_angs)
