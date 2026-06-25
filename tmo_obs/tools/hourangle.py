@@ -7,7 +7,8 @@ from datetime import datetime
 from pytz import UTC
 
 from tmo_obs.utils import ( get_current_sidereal_time, dateToSidereal, current_dt_utc, tmo_loc, 
-                           parse_time_arg, get_current_hour_angle, get_hour_angle, input_to_angle )
+                           parse_time_arg, get_current_hour_angle, get_hour_angle, input_to_angle,
+                           copy_to_clipboard, format_angle_str, AngleFormat )
 
 def main():
     parser = ArgumentParser(description="Get the hour angle of a target with the provided RA, now or in the future")
@@ -20,13 +21,20 @@ def main():
     
     parser.add_argument('time',nargs='?',type=str, help="[Optional] Time to get LST at. Assumes current if this arg is not provided. Datetime, in format YY-MM-DDTHH:MM:SS, or given relative to a date or to special keyword 'now', ex. now+1hr, now+2h3m2s or {some date}+3hr2s, {some date}-13hr")
     parser.add_argument('--local',action='store_true',help="Interpret the provided time as local instead of UTC. Will not work as intended if the provided date is relative to 'now'")
+
+    parser.add_argument('--copy','-c',action='store_true',help="Copy the output to clipboard in addition to printing it")
+    parser.add_argument('--precision','-p', type=int, default=None,help="Precision of the output. Default is 5 places for decimal degrees or hours and 0 for DMS, HMS, and sexagesimal")
     
-    format = parser.add_mutually_exclusive_group()
+    fmt_group = parser.add_argument_group("Output format","Mutually exclusive. Default HMS")
+    format = fmt_group.add_mutually_exclusive_group()
     
-    format.add_argument('--degrees','-d', action='store_true',help='Give output in decimal degrees instead of hms.')
-    format.add_argument('--decimal-hours', action='store_true',help='Give output in decimal hours instead of hms.')
-    format.add_argument('--sexagesimal','-s', action='store_true',help="Give output in sexagesimal with ':' as separator")
+    format.add_argument('--hms', action='store_const', dest='fmt', const=AngleFormat.HMS, default=AngleFormat.HMS, help="Output in HMS (default)")
+    format.add_argument('--dms', action='store_const', dest='fmt', const=AngleFormat.DMS, help="Output in DMS")
+    format.add_argument('--degrees','-d', action='store_const', dest='fmt', const=AngleFormat.DEGREES, help='Output in decimal degrees')
+    format.add_argument('--decimal-hours', action='store_const', dest='fmt', const=AngleFormat.DECIMAL_HOURS, help='Output decimal hours')
+    format.add_argument('--sexagesimal','-s', action='store_const', dest='fmt', const=AngleFormat.SEXAGESIMAL, help="Output sexagesimal with ':' as separator")
     
+        
     args = parser.parse_args()
     
     if (args.lat is None) != (args.lon is None):
@@ -56,16 +64,12 @@ def main():
     if time is None:
         time = datetime.now(UTC)
     ha = get_hour_angle(RA, time, lst, loc)    
+
+    outstr = format_angle_str(ha, args.fmt, args.precision)
     
-    if args.degrees:
-        print(f"{ha.to_value('deg'):.2f}")
-        return
-    
-    if args.decimal_hours:
-        kwargs = dict(decimal=True,precision=4)
-    else:
-        kwargs = dict(sep=(':' if args.sexagesimal else 'hms'), precision=2)
-    print(ha.to_string(**kwargs))
+    print(outstr)
+    if args.copy:
+        copy_to_clipboard(outstr)
         
 if __name__ == "__main__":
     sys.exit(main())

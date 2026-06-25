@@ -6,8 +6,8 @@ import glob
 from pathlib import Path
 from astropy.io import fits
 from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
 from datetime import datetime, timedelta
+from astropy.time import Time
 import numpy as np
 
 using_tqdm = False
@@ -23,8 +23,7 @@ def slice_cube(path, save_dir=None, skip_increment=False, tincrement=None, debug
         data_cube = hdul[extension].data
         assert len(data_cube.shape)  == 3, f"Data from file {path} doesn't appear to be a cube - data shape is {data_cube.shape}"
         counter = 0
-        if save_dir is None:
-            save_dir = dirname(path)
+        save_dir = save_dir or os.getcwd()
         os.makedirs(save_dir, exist_ok=True)
         
         if tincrement is None and not skip_increment:
@@ -48,8 +47,10 @@ def slice_cube(path, save_dir=None, skip_increment=False, tincrement=None, debug
             newheader = fits.Header(header,copy=True)
             if not skip_increment:
                 start_time = header['DATE-OBS']
-                new_date_obs = increment_date(start_time, tincrement * counter)
+                mjd_obs, new_date_obs = increment_date(start_time, tincrement * counter)
                 newheader['DATE-OBS'] = new_date_obs
+                newheader['MJD-OBS'] = mjd_obs
+                newheader['JD_UTC'] = mjd_obs+2400000.5
                 fits.writeto(ipath, i, overwrite=True, header=newheader)
                 if not using_tqdm or debug:
                     print(f'Successfully sliced {ipath} with time increment {tincrement * counter} s. Prev time: {start_time}. new time: {new_date_obs}')
@@ -59,7 +60,6 @@ def slice_cube(path, save_dir=None, skip_increment=False, tincrement=None, debug
                     print(f'Successfully sliced {ipath} with no time increment.')
             counter += 1
 
-# Define the directory slicing function
 def slice_all(work_dir, file_matching='*.fits', save_dir=None, skip_increment=True, tincrement=None):
     list_files = glob.glob(join(work_dir, file_matching))
     print('Files to be sliced:')
@@ -71,12 +71,11 @@ def slice_all(work_dir, file_matching='*.fits', save_dir=None, skip_increment=Tr
     for i in list_files:
         slice_cube(i, save_dir=save_dir, skip_increment=skip_increment, tincrement=tincrement)
 
-# Define the date increment function
 def increment_date(strdate, tincrement):
     parsed = parse(strdate)
-    later = parsed + relativedelta(seconds=tincrement)
-    incremented_dateobj = later.strftime('%Y-%m-%dT%X.%f')
-    return incremented_dateobj
+    incremented = parsed + timedelta(seconds=tincrement)
+    datestr = incremented.strftime('%Y-%m-%dT%X.%f')
+    return Time(incremented).mjd, datestr
 
 
 def main():
