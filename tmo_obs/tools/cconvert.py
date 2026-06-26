@@ -40,7 +40,7 @@ def main():
             current_fmt = determine_angle_fmt(input_ang)
             output_fmt = AngleFormat.DEGREES if current_fmt != AngleFormat.DEGREES else AngleFormat.HMS
             fmted_angs.append(format_angle_str(ang, output_fmt, args.precision))
-            table.add_column(f"'{input_ang}'", footer=output_fmt.name)
+            table.add_column(f"'{input_ang}'", footer=output_fmt.name,justify='center')
         raw_outstr = ' '.join(fmted_angs)
         if args.copy:
             copy_to_clipboard(raw_outstr)

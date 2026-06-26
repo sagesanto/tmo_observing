@@ -45,6 +45,8 @@ def ensure_angle(value, quantity_name=None, assume_unit=u.deg) -> Angle:
     raise TypeError(f"Quantity must be an Angle or a float (not {type(value)}).")
 
 def determine_angle_fmt(user_input):
+    if isinstance(user_input, str) and ':' in user_input:
+        return AngleFormat.SEXAGESIMAL
     try:
         a = ensure_angle(user_input)
     except:
@@ -97,26 +99,27 @@ def input_to_angle(text, hms:bool=None):
     if hms is None:
         hms = not 'd' in text
     
-    dh, minutes, seconds = 0, 0, [0]
     vals = list(map(float, [t for t in re.split("[:dhms]", text) if t]))
+    sign_val = -1 if text[0] == "-" else 1
     if ':' in text:
-        dh, minutes, *seconds = vals
+        hours, minutes, *seconds = vals
+        seconds = 0 if not seconds else seconds[0]
+        if hms:
+            return sign_val * (abs(hours) * u.hourangle + minutes * u.hourangle / 60 + seconds * u.hourangle / 3600)
+        return sign_val * (abs(hours) * u.degree + minutes * u.arcmin + seconds * u.arcsecond)
     else:
         chars = [c for c in text if not is_numeric(c) and c != '-']
+        ang = 0 * (u.hourangle if hms else u.degree)
         for i,c in enumerate(chars):
-            if c in ('d','h'):
-                dh = vals[i]
+            if c == 'd':
+                ang += abs(vals[i]) * u.degree
+            if c == 'h':
+                ang += abs(vals[i]) * u.hourangle
             if c == 'm':
-                minutes = vals[i]
+                ang += abs(vals[i]) * (u.hourangle / 60 if hms else u.arcmin)
             if c == 's':
-                seconds = [vals[i]]                
-
-    sign = text[0] if text[0] in ("+", "-") else ""
-    if hms:
-        text = f"{sign}{abs(int(dh))}h{int(minutes)}m{seconds[0]}s" if seconds else f"{sign}{abs(int(dh))}h{int(minutes)}m"
-    else:
-        text = f"{sign}{abs(int(dh))}d{int(minutes)}m{seconds[0]}s" if seconds else f"{sign}{abs(int(dh))}d{int(minutes)}m"
-    return ensure_angle(text)
+                ang += abs(vals[i]) * (u.hourangle / 3600 if hms else u.arcsec)
+        return sign_val*ang     
 
 def format_angle_str(angle:Angle, fmt:AngleFormat, precision:Union[int,None]=None):
     if precision is None:

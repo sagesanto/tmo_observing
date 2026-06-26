@@ -1,3 +1,5 @@
+import os
+from os.path import join
 import argparse
 from datetime import datetime, timedelta, timezone
 import re
@@ -67,6 +69,7 @@ def build_arg_parser():
     parser.add_argument('end', type=str, help=r"UTC End time, in format YY-MM-DDTHH:MM:SS, or given relative to a date or to special keyword 'now', ex. now+1hr, now+2h3m2s or {some date}+3hr2s, {some date}-13hr")
     parser.add_argument('offset_interval', type=float, help='Offset interval, minutes. will perform offset to compensate for target motion every offset_interval minutes')
     parser.add_argument('config_profile', type=str, help='Name of the robo-observer config to use')
+    parser.add_argument('--outdir', '-o', type=str, default=None, help='Directory to save output in. Will be created if does not exist. Default is current working directory.')
 
     parser.add_argument('--outfile', type=str, default='Scheduler.txt', help="Name of the file to write the schedule to. File will be overwritten. Defaults to 'Scheduler.txt'")
     parser.add_argument('--shh', action='store_true', help='Write less information to terminal while generating schedule')
@@ -76,6 +79,7 @@ def build_arg_parser():
     
     parser.add_argument('--horizons-id', default=301, help='ID for horizons lookup, if not using TLE. Defaults to 301 (Moon)')
     parser.add_argument('--tle', type=str, default=None, help='TLE file to use for target ephemeris. If not provided, uses Horizons lookup instead.')
+    parser.add_argument('--save-ephems', '-e', action='store_true', help='Save the retrieved ephemeris to file')
     
     parser.add_argument('--buffer', type=float, default=10, help='Buffer time between the end of one dataset and the beginning of the next, seconds. Distinct from camera overhead, this is free time that is used as a buffer for any unexpected observation time overruns')
     parser.add_argument('--dataset-overhead', type=float, default=DEFAULT_CAMERA_OVERHEAD, help=f'Total overhead (at beginning and end) of taking a dataset, seconds. Defaults to {DEFAULT_CAMERA_OVERHEAD} second(s).')
@@ -115,6 +119,17 @@ def run(args):
     except Exception as e:
         config = None
         print(f"[WARNING] Couldn't load config ({e}). Won't be able to auto-determine indirect slew direction or check observability.")
+
+    outdir = args.outdir
+    if outdir is None:
+        outdir = os.getcwd()
+    os.makedirs(outdir,exist_ok=True)
+    
+    def out(fname):
+        return join(outdir,fname)
+    
+    def savefig(fname,bbox_inches='tight',dpi=300):
+        plt.savefig(out(fname),bbox_inches=bbox_inches,dpi=dpi)
 
     quiet = args.shh
     
@@ -260,6 +275,12 @@ def run(args):
 
     if not quiet:
         print('Got ephems.')
+    
+    if args.save_ephems:
+        ephems.write(out(f"{dataset_name}_ephems.csv"),overwrite=True)
+        # ephems.write(out(f"{dataset_name}_ephems.ecsv"),overwrite=True)
+        print('Saved ephems.')
+        
     print(f'Writing schedule for target {target_name}')
 
     horizons_ras = ephems['RA']
@@ -271,8 +292,12 @@ def run(args):
     obs_windows = [[t_start, t_finish]]
     if check_bbox and bbox is not None:
         obs_mask = observability_mask(horizons_ras, horizons_decs, horizons_dts, bbox, check_night=check_night, night_type=night_type)
+        ephems['observable'] = obs_mask
+        if args.save_ephems:
+            ephems.write(out(f"{dataset_name}_ephems.csv"),overwrite=True)
+            # ephems.write(out(f"{dataset_name}_ephems.ecsv"),overwrite=True)
         if np.all(~obs_mask):
-            print("Target is not observable in the specified window. Exiting.") 
+            print("Target is not observable in the specified window. Exiting.")
             exit(0)
             
         obs_windows = break_into_windows(obs_mask,horizons_dts)
@@ -482,10 +507,10 @@ def run(args):
 
     print(f'Made a schedule with {len(np.where(is_dataset)[0])} dataset(s) and {len(np.where(is_offset)[0])} offset(s).')
 
-    with open(outfile, 'w+') as f:
+    with open(out(outfile), 'w+') as f:
         f.write('DateTime|Image|Config|Target|Slew|RA|Dec|ExposureTime|#Exposure|Seq|Filter|CandidateID|RAOffset|DecOffset|CfgOverrides|Description\n\n')
         f.writelines(schedule_lines)
-    print(f'Wrote schedule to {outfile}')
+    print(f'Wrote schedule to {out(outfile)}')
 
     ra = np.array(ra)
     dec = np.array(dec)
@@ -504,7 +529,7 @@ def run(args):
     plt.scatter(ra[is_dataset], dec[is_dataset], color='tab:red', s=1, marker='s', zorder=2, label='Observation')
     plt.scatter(ra[~is_dataset], dec[~is_dataset], color='tab:blue', s=1, marker='s', label='Offset')
     plt.legend()
-    plt.savefig(f'{tname}_observing_plan.png', dpi=300, bbox_inches='tight')
+    savefig(f'{tname}_observing_plan.png')
     plt.close()
 
     fig, ax = plt.subplots(figsize=(12, 2))
@@ -515,7 +540,7 @@ def run(args):
     ax.set_ylim(0.9, 1.2)
     ax.set_yticks([1, 1.1])
     ax.set_yticklabels(['Datasets', 'Offsets'])
-    plt.savefig(f'{tname}_timeline.png', dpi=300, bbox_inches='tight')
+    savefig(f'{tname}_timeline.png')
     plt.close(fig)
 
     hor_mask = horizons_epochs <= running_time.timestamp()
@@ -543,7 +568,7 @@ def run(args):
     ax.legend(ncol=2)
     ax.set_ylabel('Offset (arcmin)')
 
-    plt.savefig(f'{dataset_name}.png', dpi=300, bbox_inches='tight')
+    savefig(f'{dataset_name}.png')
     plt.close(fig)
     print('Made visualizations.')
 
@@ -558,7 +583,7 @@ def run(args):
         ax.legend(ncol=2)
         ax.set_title('Fractional Offsets (relative to first offset)')
         ax.set_ylabel('Offset (fraction of initial)')
-        plt.savefig(f'{dataset_name}_fraction.png', dpi=300, bbox_inches='tight')
+        savefig(f'{dataset_name}_fraction.png')
         plt.close(fig)
 
     return 0
