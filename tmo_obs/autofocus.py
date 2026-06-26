@@ -406,7 +406,7 @@ def FWHM_Curve(CubeDirectory, CubeName, FocusVec, prefix, logger, show_in_browse
     fig1.savefig(CubeName[:-9]+'plots_additional.png')
 
     fig2.suptitle(CubeName[:-10]+'    FocusVec = '+str(FocusVec)+'\n FWHM Opt = '+str(fwhm_opt)[:6]+ '    Gini Opt = '+str(gini_opt)[:6] +'\n Master sources detected = '+str(num) +'    Num. sources used = '+str(used), fontsize = 12)
-    fig2.savefig(CubeName[:-9]+'plots.png'        )
+    fig2.savefig(CubeName[:-9]+'plots.png')
 
     logger.info('figures saved')
 
@@ -417,7 +417,6 @@ def FWHM_Curve(CubeDirectory, CubeName, FocusVec, prefix, logger, show_in_browse
         logger.error("WARNING: FWHM and gini do not agree. Going to predictive/original focus instead.")
         fwhm_opt = None
     return fwhm_opt, table
-
 
 
 # ------------------------------------------ Telescope Operation -----------------------------------------
@@ -444,43 +443,20 @@ def __move_filter(filter_name, logger, retries=6):
 
     return
 
-    ###################
-    #status = False
-
-    #if filter_name.upper() == 'NONE':
-    #    pass
-    #else:
-    #    try_cnt = 0
-    #    for i in range(retries):
-    #        logger.info('  Trying to connect... (%d)' % (i+1))
-    #        try_cnt += 1
-
-            # connect to filter wheel
-    #        filter_wheel = FilterWheel()
-    #        filter_wheel.connect()
-    #        if not filter_wheel.err:
-    #            filter_wheel.initialize()
-    #            if not filter_wheel.err:
-    #                if filter_wheel.getCurFltName() != filter_name.upper():
-    #                    filter_wheel.gotoFltName(filter_name.upper())
-    #                else:
-    #                    logger.warning('Filter wheel already at %s' % filter_name.upper())
-    #                status = True
-    #                break
-    #            else:
-    #                logger.warning('Failed to initialize filter wheel')
-    #        else:
-    #            logger.warning('Failed to connect to filter wheel')
-
-    #    if try_cnt == retries:
-    #        logger.error('Unable to set filter. Check filter wheel serial connection')
-
-    #return status
-    ####################
-
 # Do a take_images --focus-vec and make 4D cube out of focus-vec
 # --------------------------------------------------------------
 def run(params, logger):
+    
+    if params['prefix'] is None:  # auto-determine prefix
+        i=0
+        while True:
+            prefix = f'af_{i}'
+            focus_vec_name = os.path.join(params['directory'], prefix)
+            flist = glob(focus_vec_name + '_[0-9]*')
+            if not flist:  # prefix doesn't already exist, let's use it
+                params['prefix'] = prefix
+                break
+            i += 1
 
     # If no --skip_focus_vec is passed, do a --focus-vec
     # This is the normal operation mode
@@ -504,7 +480,7 @@ def run(params, logger):
         scope.connect(photometrics.TELESCOPE_CONTROLLER)
         # Get current focus
         focus0 = scope.get_focus()
-        logger.info("Current focus value = {focus0}")
+        logger.info(f"Current focus value = {focus0}")
 
         # Automatic asymmetric range or customize focus-vec value
         if params['focus_vec'] != None:
@@ -517,10 +493,6 @@ def run(params, logger):
         logger.info('Connecting to SynTrack server...')
         syntrack_obj = PySynTrack_Interface(params['syntrack_ip'], params['syntrack_port'])
         
-        #syntrack_IP_NEW = '192.138.101.185'
-        #syntrack_client.connect(params['syntrack_ip'], params['syntrack_port'])
-        #syntrack_client.connect(syntrack_IP_NEW, params['syntrack_port'])
-        #if syntrack_client.client is None:
         with syntrack_obj as syntrack_client:
             if not syntrack_client.is_syntrack_alive():
                 logger.error('Unable to connect to SynTrack server. Stopping.')
@@ -694,7 +666,7 @@ def main():
     parser = argparse.ArgumentParser(description='TM23 Cassegrain instrument image acquisition utility')
 
     # Native take_images arguments
-    parser.add_argument('prefix', type=str,  help='focusloop name')
+    parser.add_argument('prefix', type=str, default=None, help='focusloop name')
 
     parser.add_argument('--directory', default='./focusloop/', type=str, help='target directory; default to ./focusloop')
     parser.add_argument('--exposure', default=2.0, type=float, help='exposure time (sec); default to 2 sec')

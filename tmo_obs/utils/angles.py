@@ -102,7 +102,7 @@ def input_to_angle(text, hms:bool=None):
     if ':' in text:
         dh, minutes, *seconds = vals
     else:
-        chars = [c for c in text if not is_numeric(c)]
+        chars = [c for c in text if not is_numeric(c) and c != '-']
         for i,c in enumerate(chars):
             if c in ('d','h'):
                 dh = vals[i]

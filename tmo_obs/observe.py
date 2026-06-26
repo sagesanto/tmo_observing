@@ -297,16 +297,12 @@ def observe(args):
                     # capture_ single(linux_dirname, 3, 5, 'FocusReset',
                         #'Binning size reset for autofocus', syntrack_conn, scope=scope, do_bin2fits=False,filter_name=row["Filter"], skip_temp=True, **AUTOFOCUS_CONFIG)
 
-                    cmd_args = ""
-                    for k, v in AUTOFOCUS_CONFIG.items():
-                        cmd_args += f"--{k.replace('_','-')}=\"{v}\" "
-                    shell_cmd = f"python3 {AUTOFOCUS_EXEC} focusloop_{suffix} {cmd_args}"
-                    os.system(shell_cmd)
-
-                    # The following line is crucial: we need to reinit syntrack, or else the first science cube after focusloop will be killed
-                    # syntrack_conn = PySynTrack_Interface(
-                    #     photometrics.SYNTRACK_IP, photometrics.SYNTRACK_PORT
-                    # )
+                    # cmd_args = ""
+                    # for k, v in AUTOFOCUS_CONFIG.items():
+                    #     cmd_args += f"--{k.replace('_','-')}=\"{v}\" "
+                    # shell_cmd = f"python3 {AUTOFOCUS_EXEC} focusloop_{suffix} {cmd_args}"
+                    # os.system(shell_cmd)
+                    os.system(f'autofocus focusloop_{suffix}')
                     logger.info("Done refocusing.")
 
                     break
