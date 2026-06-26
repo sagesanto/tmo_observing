@@ -81,8 +81,6 @@ def calculate_image_statistics(images:List[str], subregion:Union[List[int],None]
     if do_fwhm:
         labels.extend(("FWHM","NumSources"))
     
-    precision = PRECISION[precision]
-
     for image_file in images:
         try:
             hdul = fits.open(image_file)
@@ -92,7 +90,7 @@ def calculate_image_statistics(images:List[str], subregion:Union[List[int],None]
             else:
                 # otherwise, don't do that (saves memory)
                 data = hdul[0].data
-
+                
             if len(subregion)==4:
                 x1=subregion[0]-1
                 x2=subregion[1]
@@ -115,7 +113,6 @@ def calculate_image_statistics(images:List[str], subregion:Union[List[int],None]
             min_value = np.min(frame)
             max_value = np.max(frame)
             total_pixels = frame.size
-
 
             d_list = [image_file, total_pixels, mean, median, std_dev, min_value, max_value] 
             try:
@@ -158,7 +155,7 @@ def main():
     parser.add_argument('-d','--deluxe', dest='deluxe', action='store_true', help="Calculate image stats, run source extraction, and do fwhm calculation on the frame. Default.")
     parser.add_argument('-p','--plain', dest='deluxe', action='store_false', help="Calculate image stats only, no source extraction")
     parser.set_defaults(deluxe=True)
-    parser.add_argument("--precision", default=32, type=int, help=f"Desired float precision, one of {list(PRECISION.keys())}. Default 32. Ignored if --deluxe is False.")
+    parser.add_argument("--precision", default=32, type=int, choices=list(PRECISION.keys()), help=f"Desired float precision, one of {list(PRECISION.keys())}. Default 32. Ignored if --deluxe is False.")
     parser.add_argument("-c", "--save-catalog", default=False, action="store_true", help="Whether, if when running in deluxe mode, to store the created source catalog for each image as a csv. Default False.")
     parser.add_argument("--source-sigma", default=5, type=float, help="how many standard deviations above the noise a source must be to be detected in deluxe mode. Default 5.")
     parser.add_argument("--ncont", default=16, type=int, help="number of sufficiently-bright connected pixels a source must have to be detected in deluxe mode. Default 16.")
@@ -181,19 +178,13 @@ def main():
 
     deluxe = args.deluxe
 
-    precision = args.precision
-    try:
-        precsision = PRECISION[precision]
-    except KeyError:
-        print(f"ERROR: --precision must be one of {list(PRECISION.keys())}, not '{precision}'")
-        sys.exit(1)
+    precision = PRECISION[args.precision]
 
     save_catalog = args.save_catalog
 
     source_sigma = args.source_sigma
     ncont = args.ncont
     visualize = args.visualize
-
     statistics, labels = calculate_image_statistics(matching_files, subregion, precision, save_catalog, do_fwhm=deluxe, source_sigma=source_sigma, ncont=ncont, visualize=visualize, vis_norm=not args.no_norm)
 
     for stats in statistics:
