@@ -371,9 +371,12 @@ def run(args):
                     dra = abs(dra)
                 else:
                     dra = -abs(dra)
+                    
+        print(f"ra: {ra}, dec: {dec}, dra: {dra}, ddec: {ddec}")
+        # print(f"ra: {ra}, dec: {dec}, dra: {dra}, ddec: {ddec}")
             
         time = dt.strftime('%Y-%m-%dT%H:%M:%S.000')
-        return f"{time}|0|{schedule_config_profile}|{dataset_name}|Indirect|{fmt(ra)}|{fmt(dec)}|0.0|0|0|CLEAR|-1|{fmt(dra, 5)}|{fmt(ddec, 5)}|{overrides}|\"{target_name} Indirect Slew\""
+        return f"{time}|0|{schedule_config_profile}|{dataset_name}|Indirect|{fmt(ra-dra)}|{fmt(dec-ddec)}|0.0|0|0|CLEAR|-1|{fmt(dra, 5)}|{fmt(ddec, 5)}|{overrides}|\"{target_name} Indirect Slew\""
 
     def write_direct_slew(dt, ra, dec, dra, ddec):
         _ = (dra, ddec)
@@ -430,7 +433,8 @@ def run(args):
         dec.append(dec_i)
         is_offset.append(False)
         is_dataset.append(False)
-        schedule_lines.append(write_slew_line(slew_time, ra_i - delta_ra_deg + manual_slew_offset_ra, dec_i - delta_dec_deg + manual_slew_offset_dec, delta_ra_deg, delta_dec_deg) + '\n\n')
+        schedule_lines.append(write_slew_line(slew_time, ra_i + manual_slew_offset_ra, dec_i + manual_slew_offset_dec, delta_ra_deg, delta_dec_deg) + '\n\n')
+        # schedule_lines.append(write_slew_line(slew_time, ra_i - delta_ra_deg + manual_slew_offset_ra, dec_i - delta_dec_deg + manual_slew_offset_dec, delta_ra_deg, delta_dec_deg) + '\n\n')
         running_time = time_after_slew
         time_of_last_offset = slew_time
 
