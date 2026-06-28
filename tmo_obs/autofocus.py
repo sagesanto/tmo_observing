@@ -666,7 +666,7 @@ def main():
     parser = argparse.ArgumentParser(description='TM23 Cassegrain instrument image acquisition utility')
 
     # Native take_images arguments
-    parser.add_argument('prefix', type=str, default=None, help='focusloop name')
+    parser.add_argument('--prefix', '-p', type=str, default=None, help='focusloop name')
 
     parser.add_argument('--directory', default='./focusloop/', type=str, help='target directory; default to ./focusloop')
     parser.add_argument('--exposure', default=2.0, type=float, help='exposure time (sec); default to 2 sec')

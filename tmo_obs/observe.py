@@ -302,7 +302,7 @@ def observe(args):
                     #     cmd_args += f"--{k.replace('_','-')}=\"{v}\" "
                     # shell_cmd = f"python3 {AUTOFOCUS_EXEC} focusloop_{suffix} {cmd_args}"
                     # os.system(shell_cmd)
-                    os.system(f'autofocus focusloop_{suffix}')
+                    os.system(f'autofocus --prefix focusloop_{suffix}')
                     logger.info("Done refocusing.")
 
                     break
