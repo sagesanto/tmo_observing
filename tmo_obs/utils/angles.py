@@ -105,8 +105,8 @@ def input_to_angle(text, hms:bool=None):
         hours, minutes, *seconds = vals
         seconds = 0 if not seconds else seconds[0]
         if hms:
-            return sign_val * (abs(hours) * u.hourangle + minutes * u.hourangle / 60 + seconds * u.hourangle / 3600)
-        return sign_val * (abs(hours) * u.degree + minutes * u.arcmin + seconds * u.arcsecond)
+            return Angle(sign_val * (abs(hours) * u.hourangle + minutes * u.hourangle / 60 + seconds * u.hourangle / 3600))
+        return Angle(sign_val * (abs(hours) * u.degree + minutes * u.arcmin + seconds * u.arcsecond))
     else:
         chars = [c for c in text if not is_numeric(c) and c != '-']
         ang = 0 * (u.hourangle if hms else u.degree)
@@ -119,7 +119,7 @@ def input_to_angle(text, hms:bool=None):
                 ang += abs(vals[i]) * (u.hourangle / 60 if hms else u.arcmin)
             if c == 's':
                 ang += abs(vals[i]) * (u.hourangle / 3600 if hms else u.arcsec)
-        return sign_val*ang     
+        return Angle(sign_val*ang)     
 
 def format_angle_str(angle:Angle, fmt:AngleFormat, precision:Union[int,None]=None):
     if precision is None:
@@ -137,7 +137,6 @@ def format_angle_str(angle:Angle, fmt:AngleFormat, precision:Union[int,None]=Non
         kwargs.update(dict(sep='hms', unit='hourangle'))
     elif fmt == AngleFormat.DMS:
         kwargs.update(dict(sep='dms', unit='degree'))
-        
     return angle.to_string(**kwargs)
     
 def wrap_around(value):
