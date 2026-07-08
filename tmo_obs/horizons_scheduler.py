@@ -367,7 +367,7 @@ def run(args):
             if bbox is not None:  # the slew delta should point towards the center of the box (so that we dont offset out-of-bounds)
                 bbox_x, bbox_y = bbox.exterior.coords.xy
                 ha = get_hour_angle(ra*u.deg,dt)
-                if ha.to_value('degree') > (max(bbox_x) - min(bbox_x))/2:
+                if ha.to_value('degree') < (max(bbox_x) + min(bbox_x))/2:
                     dra = abs(dra)
                 else:
                     dra = -abs(dra)

@@ -419,7 +419,7 @@ def observe(args):
                             # and then do a blind slew from point A to point X (the assumption being that the slew error is
                             # related to the slew duration so is lower going from point A to X than from far away).
                             
-                            # we have faced difficulty applying offsets directly because of unknown software or hardware limitations,
+                            # we have faced difficulty applying offsets directly because of unknown ACE software or hardware limitations,
                             # so I'm implementing this workaround
 
                             # the plan is as follows:
