@@ -724,9 +724,9 @@ def main():
 
     # set up detector size
     if args['roi_height'] is None:
-        args['roi_height'] = int(sensor_height / int(args['binning_size'][2]))
+        args['roi_height'] = int(sensor_height)
     if args['roi_width'] is None:
-        args['roi_width'] = int(sensor_width / int(args['binning_size'][0]))
+        args['roi_width'] = int(sensor_width)
       
     logger = configure_logger('autofocus','obs.log')
     #logger = make_logger(args['log_path'], args['log_filename'])
