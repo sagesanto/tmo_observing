@@ -16,6 +16,8 @@ from astral import LocationInfo
 from skyfield import almanac
 from skyfield.api import wgs84, Loader
 
+import matplotlib.pyplot as plt
+
 from tmo_obs.config import data_path
 
 from tmo_obs.utils.angles import ensure_angle, ensure_angles, wrap_around
@@ -142,7 +144,7 @@ def ra_dec(alt:Angle, az:Angle, dt:datetime, loc=tmo_loc):
     return Angle(icrs.ra), Angle(icrs.dec)
 
 
-def load_horizon_box(horizon_box_path, BBOX_BUFFER_DEG):
+def load_horizon_box(horizon_box_path, BBOX_BUFFER_DEG, raw=False):
     """Load a json file specifying the pointing limits (horizon box) of the telescope
 
     :param horizon_box_path: the path to the horizon box file
@@ -167,6 +169,9 @@ def load_horizon_box(horizon_box_path, BBOX_BUFFER_DEG):
         v1 = (sign(v[0]) * (abs(v[0])-BBOX_BUFFER_DEG), sign(v[1]) * (abs(v[1])-BBOX_BUFFER_DEG))
         HORIZON_BOX_2[k] = v1
     HORIZON_BOX = HORIZON_BOX_2
+    
+    if raw:
+        return HORIZON_BOX
 
     _bbox_x, _bbox_y = [],[]
     for (min_dec,max_dec),(min_ha,max_ha) in HORIZON_BOX.items():
@@ -247,3 +252,22 @@ def break_into_windows(mask:npt.NDArray[np.bool_], t_arr:npt.NDArray):
     if current_window is not None:
         windows.append(current_window)
     return windows
+
+def plot_bbox(bbox:geometry.Polygon,ax=None):
+    simple_bbox = bbox.simplify(0.01)
+    simple_bbox_x = np.array( simple_bbox.exterior.coords.xy[0] )
+    simple_bbox_y = np.array( simple_bbox.exterior.coords.xy[1] )
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10,10))
+    ax.plot(simple_bbox_x/15, simple_bbox_y, label='Horizon Box')
+    # plt.gca().set_aspect('equal')
+    # label the bounding box corner points with HA, DEC
+            
+    ax.scatter(simple_bbox_x/15, simple_bbox_y, color='red', s=10)
+    for ha, dec in zip(simple_bbox_x/15, simple_bbox_y):
+        if dec > 0 or ha <2:
+            ax.text(ha, dec, f"({ha:.1f}h,\n {dec:.1f}°)", fontsize=8, ha='left', va='top')
+            
+    ax.set_xlabel('Hour Angle (hours)')
+    ax.set_ylabel('Dec (degrees)')
+    return ax

@@ -1,10 +1,23 @@
 from datetime import datetime, timedelta
 from pytz import UTC
+import pytz
 from astropy.time import Time
 from pandas.io import clipboard
 
+DATE_OBS_FORMAT = '%Y-%m-%dT%X.%f'
+
 def timestr(dt):
     return dt.strftime("%m/%d/%Y %H:%M")
+
+def parse_date_obs(t_str,tz=pytz.UTC) -> datetime:
+    return datetime.strptime(t_str,DATE_OBS_FORMAT).replace(tzinfo=tz)
+
+def write_date_obs(dt:datetime, as_tz=pytz.UTC) -> str:
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(as_tz)
+    else:
+        dt = dt.replace(tzinfo=as_tz)
+    return dt.strftime(DATE_OBS_FORMAT)
 
 def file_timestamp(dt:datetime=None):
     if dt is None:

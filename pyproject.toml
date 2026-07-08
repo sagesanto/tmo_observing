@@ -51,6 +51,7 @@ hselect = 'tmo_obs.tools.imhead:main'  # this intentionally points to imhead
 lst = 'tmo_obs.tools.lst:main'
 hourangle = 'tmo_obs.tools.hourangle:main'
 cconvert = 'tmo_obs.tools.cconvert:main'
+bbox = 'tmo_obs.tools.bbox:main'
 
 [project.urls]
 Homepage = "https://github.com/sagesanto/sika"

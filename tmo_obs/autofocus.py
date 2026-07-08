@@ -43,8 +43,6 @@ def Image_Segmentation(data, threshold, npixels):
 
 # ---------------------------------------------------- Source Deblending ---------------------------------------------------
 
-
-
 def Deblending(convolved_data, segm, npixels, nlevels, contrast):
     segm_deblend = deblend_sources(convolved_data, segm, npixels, nlevels=nlevels, contrast=contrast)
     # keyword "nlevels" is the number of multi-thresholding levels to use. 
@@ -56,8 +54,6 @@ def Deblending(convolved_data, segm, npixels, nlevels, contrast):
 
 # ---------------------------------------------- Read FITS Cube ----------------------------------------------
 
-
-
 def Read_4DFITS_Cube(CubeName, n):
     # Read a FITS cube that has four dimensions, with NAXIS_4 == n, NAXIS_3 == 1, np.shape == (n, 1, y, x)
     hdulist = fits.open(CubeName)
@@ -67,8 +63,6 @@ def Read_4DFITS_Cube(CubeName, n):
     return data
 
 # ----------------------------------------------- Find Sources ----------------------------------------------------
-
-
 
 # npixels: number of connected pixels needed, each above threshold, for an area to qualify as a source
 # thresh: coeffecient of std. dev. in determining detection threshold 
@@ -123,8 +117,6 @@ def extract_sources(data, npixels, thresh):
 
 
 # -------------------------------------------------- FWHM Curve --------------------------------------------------
-
-
 
 def FWHM_Curve(CubeDirectory, CubeName, FocusVec, prefix, logger, show_in_browser = False):
     
@@ -421,7 +413,6 @@ def FWHM_Curve(CubeDirectory, CubeName, FocusVec, prefix, logger, show_in_browse
 
 # ------------------------------------------ Telescope Operation -----------------------------------------
 
-
 ImageBinningSize = {'1x1': 1, '2x2': 2, '4x4': 4}
 ImageBinningModes = ['HostSum', 'FPGASum']
 
@@ -612,8 +603,6 @@ def run(params, logger):
         logger.error(repr(e))
         logger.error(e)
         raise e
-    
-    
     
 
     # Move focuser to value
