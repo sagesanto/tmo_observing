@@ -91,8 +91,8 @@ def load_results_db_if_not_open(db_path:str, analysis_type:ResultsDbType, conn:P
         logger.info(f"Results database {db_path} has already been loaded - moving on without loading it again.")
         return
     # load the requested results db
-    logger.info(f"Opening results database {db_path} for analysis type '{analysis_type.name}' ({analysis_type.value}0")
-    conn.open_result_db(db_path, analysis_type.name)
+    logger.info(f"Opening results database {db_path} for analysis type '{analysis_type.value}'")
+    conn.open_result_db(db_path, analysis_type.value)
     time.sleep(3)  # ugh
     
 def change_archive_journal_mode_if_necessary(conn:PySynTrack_Interface):
@@ -292,16 +292,6 @@ def observe(args):
                     logger.info("Refocusing...")
                     now = datetime.now()
                     suffix = now.strftime("%Y-%m-%dT%H:%M:%S")
-
-                    # SAGE: commented this february 2026 because its purpose was not clear and it was old:
-                    # capture_ single(linux_dirname, 3, 5, 'FocusReset',
-                        #'Binning size reset for autofocus', syntrack_conn, scope=scope, do_bin2fits=False,filter_name=row["Filter"], skip_temp=True, **AUTOFOCUS_CONFIG)
-
-                    # cmd_args = ""
-                    # for k, v in AUTOFOCUS_CONFIG.items():
-                    #     cmd_args += f"--{k.replace('_','-')}=\"{v}\" "
-                    # shell_cmd = f"python3 {AUTOFOCUS_EXEC} focusloop_{suffix} {cmd_args}"
-                    # os.system(shell_cmd)
                     os.system(f'autofocus --prefix focusloop_{suffix}')
                     logger.info("Done refocusing.")
 
