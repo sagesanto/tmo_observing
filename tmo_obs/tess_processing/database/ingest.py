@@ -67,7 +67,7 @@ def build_observation_fields(obs_row: dict, obs_details: dict) -> dict:
         is_flat=flat,
         exptime=obs_details["ExposureTime"],
         frames=obs_details["Frames"],
-        filter=obs_details["FILTER"],
+        filter=obs_details.get("FILTER"),
         tele_ra=obs_details["TelescopeRA"],
         tele_dec=obs_details["TelescopeDEC"],
         camera_name=obs_details["CameraName"],
@@ -149,9 +149,12 @@ def main():
     logger = configure_logger("ingest")
 
     parser = argparse.ArgumentParser(description="Recursively ingest Metadata.db files into the records database")
-    parser.add_argument("start_directory", nargs="?", default=".", help="Directory to search for Metadata.db files (default: cwd)")
+    parser.add_argument("start_directory", nargs="?", default=".", help="Directory to search for Metadata.db files (default: cwd). Ignored if --dirs is given.")
+    parser.add_argument("--dirs", nargs="+", default=None, help="One or more base-level directories to search recursively")
     parser.add_argument("--rebuild", action="store_true", help="Wipe the existing records database before ingesting")
     args = parser.parse_args()
+
+    search_dirs = args.dirs if args.dirs else [args.start_directory]
 
     config = load_config()
     remote_db_path = config.get('obs_db_path', DEFAULT_DB_PATH)
@@ -165,9 +168,10 @@ def main():
         shutil.copy2(remote_db_path, local_db_path)
 
     db_paths = []
-    for root, _, files in walk(args.start_directory):
-        if "Metadata.db" in files:
-            db_paths.append(join(root, "Metadata.db"))
+    for start_dir in search_dirs:
+        for root, _, files in walk(start_dir):
+            if "Metadata.db" in files:
+                db_paths.append(join(root, "Metadata.db"))
 
     try:
         for metadata_db_path in tqdm(db_paths, desc="Ingesting metadata dbs"):

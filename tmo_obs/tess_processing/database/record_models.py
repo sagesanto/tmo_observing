@@ -45,7 +45,7 @@ class Observation(Base):
     
     exptime: Mapped[float] = mapped_column(nullable=False)
     frames: Mapped[int] = mapped_column(nullable=False)
-    filter: Mapped[str] = mapped_column(nullable=False)
+    filter: Mapped[str] = mapped_column(nullable=True)
     
     tele_ra: Mapped[float] = mapped_column(nullable=False)
     tele_dec: Mapped[float] = mapped_column(nullable=False)

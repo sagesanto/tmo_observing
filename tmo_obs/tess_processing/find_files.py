@@ -13,6 +13,7 @@ def is_bias(obs_details:dict):
     # print(f"\t Filter is DARK: {obs_details['FILTER'] == 'DARK'}")
     # print(f"\t Exptime is zero: {obs_details['ExposureTime'] == 0}")
     # print(f"\t Bias in name: {obs_details['Name'].lower()}")
+    if "FILTER" not in obs_details: return False
     return obs_details['FILTER'] == 'DARK' and obs_details['ExposureTime'] == 0 and "bias" in obs_details['Name'].lower()
 
 def is_flat(md_row):
