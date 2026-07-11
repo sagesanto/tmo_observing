@@ -50,7 +50,13 @@ def find_matching_rows(criteria:Callable[dict,dict],obs_details:dict,cal_metadat
 # def find_matching_dark_row(obs_row,cal_metadata_db:MetadataDB,cal_md_dat_path):
 if __name__ == '__main__':
     from find_tess import find_all_tess_obs
-    base_dir = '/home/sage/tmo_observing/tmo_obs/tess_processing/ex_TESS_dir'
+    import argparse
+    parser = argparse.ArgumentParser(description="Get information about TESS datasets from a metadata db/dat pair")
+    
+    parser.add_argument('--dir', type=str, default=None, help="Target directory, defaults to cwd. Not necessary if both --db and --dat are provided.")    
+
+    args = parser.parse_args()
+    base_dir = args.dir or os.getcwd()
     calib_dir = join(base_dir,'Calibs')
     
     obs_dat = MetadataDat(base_dir)
