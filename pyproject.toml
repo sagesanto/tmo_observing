@@ -53,6 +53,7 @@ hourangle = 'tmo_obs.tools.hourangle:main'
 cconvert = 'tmo_obs.tools.cconvert:main'
 bbox = 'tmo_obs.tools.bbox:main'
 find_tess = 'tmo_obs.tess_processing.find_tess:main'
+ingest = 'tmo_obs.tess_processing.database.ingest:main'
 
 [project.urls]
 Homepage = "https://github.com/sagesanto/sika"

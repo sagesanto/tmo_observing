@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from tmo_obs.tess_processing.database.record_models import Base
 
-DEFAULT_DB_PATH = "records.sqlite3"
+DEFAULT_DB_PATH = "obs_master.sqlite3"
 
 _engine = None
 _Session: Optional[sessionmaker] = None

@@ -85,14 +85,14 @@ def build_observation_fields(obs_row: dict, obs_details: dict) -> dict:
         acq_num_2=obs_row["AcqNum2"],
     )
 
-def ingest_md_db(target_db: MetadataDB, target_dat: MetadataDat, data_dir: str, schedule_path: str = None, force_ingest: bool = False):
+def ingest_md_db(target_db: MetadataDB, target_dat: MetadataDat, data_dir: str, schedule_path: str = None, force_ingest: bool = False, record_db_path=None):
     schedule = None
     if schedule_path:
         schedule, _ = read_schedule(schedule_path)
 
     filesize, last_file_update = get_db_file_stats(target_db.fname)
 
-    with get_record_db() as db:
+    with get_record_db(record_db_path) as db:
         db_record = find_existing_metadata_db(db, target_db.fname)
 
         if db_record is not None and not force_ingest:
@@ -141,7 +141,7 @@ def main():
 
     from tqdm import tqdm
 
-    from tmo_obs.config import configure_logger
+    from tmo_obs.config import configure_logger, load_config
     from tmo_obs.tess_processing.database.record_db import DEFAULT_DB_PATH
 
     logger = configure_logger("ingest")
@@ -151,28 +151,31 @@ def main():
     parser.add_argument("--rebuild", action="store_true", help="Wipe the existing records database before ingesting")
     args = parser.parse_args()
 
-    if args.rebuild and exists(DEFAULT_DB_PATH):
-        remove(DEFAULT_DB_PATH)
+    config = load_config()
+    db_path = config.get('obs_db_path',DEFAULT_DB_PATH)
+
+    if args.rebuild and exists(db_path):
+        remove(db_path)
 
     db_paths = []
     for root, _, files in walk(args.start_directory):
         if "Metadata.db" in files:
             db_paths.append(join(root, "Metadata.db"))
 
-    for db_path in tqdm(db_paths, desc="Ingesting metadata dbs"):
-        data_dir = dirname(db_path)
+    for metadata_db_path in tqdm(db_paths, desc="Ingesting metadata dbs"):
+        data_dir = dirname(metadata_db_path)
         dat_path = join(data_dir, "Metadata.dat")
         if not exists(dat_path):
-            logger.warning(f"No Metadata.dat found next to {db_path}, skipping.")
+            logger.warning(f"No Metadata.dat found next to {metadata_db_path}, skipping.")
             continue
 
         schedule_path = join(data_dir, "Scheduler.txt")
         if not exists(schedule_path):
             schedule_path = None
 
-        with MetadataDB(db_path) as target_db:
+        with MetadataDB(metadata_db_path) as target_db:
             target_dat = MetadataDat(dat_path)
-            ingest_md_db(target_db, target_dat, data_dir, schedule_path=schedule_path)
+            ingest_md_db(target_db, target_dat, data_dir, schedule_path=schedule_path, record_db_path=db_path)
 
 
 if __name__ == "__main__":
