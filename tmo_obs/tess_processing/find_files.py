@@ -3,7 +3,7 @@ from os.path import join
 from rich import print as rprint
 from typing import Callable, Dict
 
-from tmo_obs.tess_processing.metadata import MetadataDat, MetadataDB, get_obs_details
+from tmo_obs.tess_processing.database.metadata import MetadataDat, MetadataDB, get_obs_details
     
 def is_dark(md_row):
     pass

@@ -7,7 +7,7 @@ import json
 import sqlite3
 from rich import print as rprint
 
-from tmo_obs.tess_processing.metadata import MetadataDat, MetadataDB, get_obs_details, read_schedule
+from tmo_obs.tess_processing.database.metadata import MetadataDat, MetadataDB, get_obs_details, read_schedule
 
 def find_all_tess_obs(db:MetadataDB):
     return db.query("SELECT * FROM DatasetMetaData WHERE substr(Name,1,4) = 'TESS' AND Name NOT LIKE '%recenter%'")

@@ -9,6 +9,7 @@ from pytz import timezone
 from datetime import datetime
 
 from tmo_obs.utils import parse_date_obs, write_date_obs
+from tmo_obs.tess_processing.database.sqlite_db import SQLiteDB
 
 # what info do we care about?
 DAT_KEYWORDS = ['FILTER','RAWX','RAWY','Temperature','Sky','Focus']
@@ -63,55 +64,7 @@ class MetadataDat:
         return [dict(r) for _,r in rows.iterrows()][0]
             
 
-class MetadataDB:
-    def __init__(self, db_file, check_same_thread=True, read_only=True):
-        if isdir(db_file):
-            db_file = join(db_file,'Metadata.db')
-        self.fname = abspath(db_file)
-        self.cur = None
-        self.conn = None
-        self.check_same_thread = check_same_thread
-        self.read_only = read_only
-    
-    @property
-    def is_connected(self):
-        return self.cur is not None
-    
-    def __enter__(self):
-        self.open()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-            
-    def open(self, **kwargs):
-        if not exists(self.fname):
-            raise FileNotFoundError(f"Could not find file '{self.fname}'")
-
-        det_types = sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
-        if "detect_types" in kwargs:
-            det_types = kwargs["detect_types"] | sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
-            del kwargs["detect_types"]
-            
-        if self.read_only:
-            self.conn = sqlite3.connect(f'file:{self.fname}?mode=ro', uri=True, check_same_thread=self.check_same_thread, detect_types=det_types, **kwargs)
-        else:
-            self.conn = sqlite3.connect(self.fname, check_same_thread=self.check_same_thread, detect_types=det_types, **kwargs)
-        
-        self.conn.row_factory = sqlite3.Row
-        self.cur = self.conn.cursor()
-    
-    def close(self):
-        if self.is_connected:
-            self.conn.close()
-            self.cur = None
-            self.conn = None 
-            
-    def query(self, query_text):
-        self.cur.execute(query_text)
-        rows = self.cur.fetchall()
-        return res_rows_to_dicts(rows)
-
+class MetadataDB(SQLiteDB):
     def find_cam_metadata(self,row_id,parse=False):
         rows = self.query(f"SELECT * FROM DatasetMetaData_CameraParameters WHERE MetaDataRowID = {row_id}")
         md = {}
@@ -144,7 +97,7 @@ def find_schedule_line(obs_row,schedule:list[dict],time_tolerance_minutes=2):
 
     name_match = [d for d in schedule if d['Target'] in obs_row['Name']]
     if not len(name_match):
-        print('No schedule lines with matching name')
+        # print('No schedule lines with matching name')
         return None
 
     obs_ts = utc_obs_timestamp(obs_row)
