@@ -136,8 +136,10 @@ def ingest_md_db(target_db: MetadataDB, target_dat: MetadataDat, data_dir: str, 
 
 def main():
     import argparse
+    import shutil
+    import tempfile
     from os import remove, walk
-    from os.path import join
+    from os.path import basename, join
 
     from tqdm import tqdm
 
@@ -152,30 +154,40 @@ def main():
     args = parser.parse_args()
 
     config = load_config()
-    db_path = config.get('obs_db_path',DEFAULT_DB_PATH)
+    remote_db_path = config.get('obs_db_path', DEFAULT_DB_PATH)
 
-    if args.rebuild and exists(db_path):
-        remove(db_path)
+    # use tempfile to avoid network drive
+    local_db_path = join(tempfile.gettempdir(), basename(remote_db_path))
+    if args.rebuild:
+        if exists(local_db_path):
+            remove(local_db_path)
+    elif exists(remote_db_path):
+        shutil.copy2(remote_db_path, local_db_path)
 
     db_paths = []
     for root, _, files in walk(args.start_directory):
         if "Metadata.db" in files:
             db_paths.append(join(root, "Metadata.db"))
 
-    for metadata_db_path in tqdm(db_paths, desc="Ingesting metadata dbs"):
-        data_dir = dirname(metadata_db_path)
-        dat_path = join(data_dir, "Metadata.dat")
-        if not exists(dat_path):
-            logger.warning(f"No Metadata.dat found next to {metadata_db_path}, skipping.")
-            continue
+    try:
+        for metadata_db_path in tqdm(db_paths, desc="Ingesting metadata dbs"):
+            data_dir = dirname(metadata_db_path)
+            dat_path = join(data_dir, "Metadata.dat")
+            if not exists(dat_path):
+                logger.warning(f"No Metadata.dat found next to {metadata_db_path}, skipping.")
+                continue
 
-        schedule_path = join(data_dir, "Scheduler.txt")
-        if not exists(schedule_path):
-            schedule_path = None
+            schedule_path = join(data_dir, "Scheduler.txt")
+            if not exists(schedule_path):
+                schedule_path = None
 
-        with MetadataDB(metadata_db_path) as target_db:
-            target_dat = MetadataDat(dat_path)
-            ingest_md_db(target_db, target_dat, data_dir, schedule_path=schedule_path, record_db_path=db_path)
+            with MetadataDB(metadata_db_path) as target_db:
+                target_dat = MetadataDat(dat_path)
+                ingest_md_db(target_db, target_dat, data_dir, schedule_path=schedule_path, record_db_path=local_db_path)
+    finally:
+        # sync back to local disk
+        if exists(local_db_path):
+            shutil.copy2(local_db_path, remote_db_path)
 
 
 if __name__ == "__main__":
