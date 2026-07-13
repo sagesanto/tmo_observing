@@ -18,7 +18,7 @@ except ImportError:
     pass
 
 def slice_cube(path, save_dir=None, skip_increment=False, tincrement=None, debug=False, extension=0):
-    with fits.open(Path(path),memmap=True) as hdul:
+    with fits.open(Path(path), memmap=False, lazy_load_hdus=True) as hdul:
         header = hdul[extension].header
         shape = hdul[extension].shape
         assert len(shape) == 3, f"Data from file {path} doesn't appear to be a cube - data shape is {shape}"

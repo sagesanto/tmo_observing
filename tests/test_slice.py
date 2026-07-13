@@ -17,6 +17,7 @@ DATA_DIR = test_dir/'data'
 
 CUBE_10S = DATA_DIR/'test_cube_10s.fits'
 CUBE_01S = DATA_DIR/'test_cube_01s.fits'
+CUBE_W_BSCALE = DATA_DIR/'test_with_bscale.fits'
 
 @pytest.mark.slice
 def test_slice_cli():
@@ -33,9 +34,6 @@ def test_slice_cli():
 
 @pytest.mark.slice
 def test_slice():
-    t = []
-    sums = []
-    i = -1
     d_sum = -1
     t = None
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -57,3 +55,23 @@ def test_slice():
                 new_sum = np.sum(hdul[0].data)
                 assert new_sum == d_sum + 1
                 d_sum = new_sum
+                
+@pytest.mark.slice
+def test_bscaled_slice():
+    t = []
+    t = None
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        slice_cube(str(CUBE_W_BSCALE),tmp_dir,debug=True)
+        fnames = os.listdir(tmp_dir)
+        fnames.sort()
+        for f in fnames:
+            print(f)
+            with fits.open(join(tmp_dir,f)) as hdul:
+                header = hdul[0].header
+                assert hdul[0].data.shape==(10,10)
+                ts = datetime.strptime(header['DATE-OBS'],'%Y-%m-%dT%X.%f').timestamp()
+                if t is None:
+                    t = ts
+                else:
+                    assert np.allclose(ts*10 - t*10, 0.1, 0.0001)  # floating point
+                t = ts
