@@ -150,9 +150,13 @@ def get_obs_details(obs_row:dict,db:MetadataDB,dat:MetadataDat=None,schedule:lis
         md = extract_dat_md(obs_row,dat,dat_kwords)
         info.update(md)
     if schedule is not None:
-        sched_line = find_schedule_line(obs_row,schedule)
-        if sched_line:
-            info['schedule_path'] = sched_line.pop('path')
+        try:
+            sched_line = find_schedule_line(obs_row,schedule)
+            if sched_line:
+                info['schedule_path'] = sched_line['path']
+        except Exception as e:
+            print(f"WARN: error reading schedule for target {obs_row['Name']} in db {db.fname}: {e}")
+            sched_line = None
         info['schedule_line'] = sched_line
     cam_params = db.find_cam_metadata(obs_row['rowid'])
     info['cam_params'] = cam_params

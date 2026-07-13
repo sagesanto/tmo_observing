@@ -1,15 +1,15 @@
+import sys, os
+from os.path import dirname, exists, getmtime, getsize, join
 import glob
 from datetime import datetime, timezone
-from os.path import dirname, exists, getmtime, getsize, join
 from typing import Optional
-
+import numpy as np
 from sqlalchemy.orm import Session
 
 from tmo_obs.tess_processing.database.metadata import MetadataDat, MetadataDB, get_obs_details, read_schedule
-from tmo_obs.tess_processing.find_files import is_bias, is_dark, is_flat
+from tmo_obs.tess_processing.find_files import is_bias, is_dark, is_flat, is_science
 from tmo_obs.tess_processing.database.record_db import get_record_db
-from tmo_obs.tess_processing.database.record_models import FitsFile, Observation, Schedule
-from tmo_obs.tess_processing.database.record_models import MetadataDB as RecordMetadataDB
+from tmo_obs.tess_processing.database.record_models import FitsFile, Observation, Schedule, MetadataDB as RecordMetadataDB
 
 
 def to_naive_utc(dt: datetime) -> datetime:
@@ -18,11 +18,7 @@ def to_naive_utc(dt: datetime) -> datetime:
     return dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 def find_fits_files(data_dir: str, name: str) -> list[str]:
-    print(f'Looking for fits files matching {name} in {data_dir}')
-    exact = join(data_dir, f"{name}.fits")
-    paths = [exact] if exists(exact) else []
-    paths += sorted(glob.glob(join(data_dir, f"{name}_*.fits")))
-    print(f'Found {len(paths)} files.')
+    paths = [join(data_dir,f) for f in os.listdir(data_dir) if f.endswith('fits') and name in f]
     return paths
 
 def get_db_file_stats(path: str) -> tuple[Optional[str], Optional[datetime]]:
@@ -57,12 +53,15 @@ def build_observation_fields(obs_row: dict, obs_details: dict) -> dict:
     bias = bool(is_bias(obs_details))
     dark = bool(is_dark(obs_details))
     flat = bool(is_flat(obs_details))
+    
+    science = is_science(obs_details)
 
     return dict(
         name=obs_details["Name"],
         obstime=to_naive_utc(obs_details["datetime"]),
         rowid=obs_details["rowid"],
         description=obs_details["Description"],
+        is_science=science,
         is_calib=bias or dark or flat,
         is_bias=bias,
         is_dark=dark,
@@ -93,62 +92,72 @@ def ingest_md_db(target_db: MetadataDB, target_dat: MetadataDat, data_dir: str, 
         schedule, _ = read_schedule(schedule_path)
 
     filesize, last_file_update = get_db_file_stats(target_db.fname)
-    print("Connecting to records db")
+    # print("Connecting to records db")
     with get_record_db(record_db_path) as db:
-        print("Locating an existing record...")
+        # print("Locating an existing entry for this database...")
         db_record = find_existing_metadata_db(db, target_db.fname)
 
         if db_record is not None and not force_ingest:
             if db_record.filesize == filesize and db_record.last_file_update == last_file_update:
                 print("Found an existing record and it has not changed. Moving on.")
                 return db_record.id  # nothing has changed, skip re-ingesting
-            print("Found an existing record but it has not changed Updating.")
+            # print("Found an existing record but it has changed. Updating.")
 
         if db_record is None:
-            print("Adding a record...")
+            # print("Adding a record...")
             db_record = RecordMetadataDB(filename=target_db.fname)
             db.add(db_record)
-            print("Added")
+            # print("Added")
 
         db_record.filesize = filesize
         db_record.last_file_update = last_file_update
-        print("Flushing...")
+        # print("Flushing...")
         db.flush()  # populates db_record.id
-        print("Flushed.")
+        # print("Flushed.")
 
-        obs_rows = target_db.query("SELECT * FROM DatasetMetaData")
-        for obs_row in obs_rows:
-            print(f"Getting observation details for observation {obs_row['Name']}")
+        obs_rows = np.array(target_db.query("SELECT * FROM DatasetMetaData"))
+        obs_names = [r["Name"] for r in obs_rows]
+        obs_key = [r["Name"]+str(r['AcqTimestamp']) for r in obs_rows]
+        _, unique_idxs, sequence_counts = np.unique(obs_key,return_index=True,return_counts=True)
+        print(f"Found {len(obs_rows)} observations in database")
+        obs_rows = obs_rows[unique_idxs]
+        print(f"Unique rows: {len(obs_rows)}")
+        obs_names_unique = [r["Name"] for r in obs_rows]
+        assert set(obs_names) == set(obs_names_unique)
+
+        for obs_row, sequence_count in zip(obs_rows,sequence_counts):
+            # print(f"Getting observation details for observation {obs_row['Name']}")
             obs_details = get_obs_details(obs_row, target_db, target_dat, schedule, directory=data_dir)
             fields = build_observation_fields(obs_row, obs_details)
-            print(f"Extracted information.")
+            fields['sequence_len'] = sequence_count
+            # print(f"Extracted information.")
 
             obs_schedule_path = obs_details.get("schedule_path")
             fields["schedule_id"] = find_or_create_schedule(db, obs_schedule_path).id if obs_schedule_path else None
-            print(f"Located/created schedule record")
+            # print(f"Located/created schedule record")
 
             observation = find_existing_observation(
                 db, fields["acquisition_timestamp"], fields["acq_system_id"], fields["acq_num_1"], fields["acq_num_2"]
             )
             if observation is not None:
-                print(f"Found an existing record for this observation. Updating")
+                # print(f"Found an existing record for this observation. Updating")
                 for key, value in fields.items():
                     setattr(observation, key, value)
                 observation.metadata_db_id = db_record.id
                 # deleting records of fits files, not the actual files lol
                 for existing_fits in list(observation.fits_files):
                     db.delete(existing_fits)
-                print(f"Updated.")
+                # print(f"Updated.")
             else:
                 observation = Observation(metadata_db_id=db_record.id, **fields)
                 db.add(observation)
-            print(f"Flushing observation ids")
+            # print(f"Flushing observation ids")
             db.flush()  # populates observation.id
 
             for fpath in find_fits_files(data_dir, obs_details["Name"]):
-                print(f"Associating fits file {fpath}")
+                # print(f"Associating fits file {fpath}")
                 db.add(FitsFile(observation_id=observation.id, filepath=fpath))
-            print("Done.")
+            # print("Done.")
 
         return db_record.id
 
@@ -210,7 +219,6 @@ def main():
                 print('Ingested.')
     finally:
         # sync back to local disk
-        # print()
         if exists(local_db_path):
             shutil.copy2(local_db_path, remote_db_path)
 
