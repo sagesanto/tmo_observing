@@ -20,9 +20,8 @@ except ImportError:
 def slice_cube(path, save_dir=None, skip_increment=False, tincrement=None, debug=False, extension=0):
     with fits.open(Path(path)) as hdul:
         header = hdul[extension].header
-        data_cube = hdul[extension].data
-        assert len(data_cube.shape)  == 3, f"Data from file {path} doesn't appear to be a cube - data shape is {data_cube.shape}"
-        counter = 0
+        shape = hdul[extension].shape
+        assert len(shape) == 3, f"Data from file {path} doesn't appear to be a cube - data shape is {shape}"
         save_dir = save_dir or os.getcwd()
         os.makedirs(save_dir, exist_ok=True)
         
@@ -30,35 +29,32 @@ def slice_cube(path, save_dir=None, skip_increment=False, tincrement=None, debug
             tincrement = header['EXPTIME']
 
         # determine how many zeroes to put in the extension name
-        nfiles = len(data_cube)
+        nfiles = shape[0]
         nzeros = int(np.ceil(np.log10(nfiles)))
         if nfiles == 10**nzeros:
             nzeros+=1 
 
-        if using_tqdm:
-            img_iterator = tqdm(hdul[extension].data)
-        else:
-            img_iterator = hdul[extension].data
+        idx_iterator = tqdm(range(nfiles)) if using_tqdm else range(nfiles)
 
-        for i in img_iterator:
-            extension = f"{counter+1}".zfill(nzeros)
+        for i in idx_iterator:
+            img = hdul[extension].section[i]
+            file_suffix = f"{i+1}".zfill(nzeros)
             img_basename = os.path.splitext(basename(path))[0]
-            ipath = join(save_dir, f"{img_basename}_{extension}.fits")
+            ipath = join(save_dir, f"{img_basename}_{file_suffix}.fits")
             newheader = fits.Header(header,copy=True)
             if not skip_increment:
                 start_time = header['DATE-OBS']
-                mjd_obs, new_date_obs = increment_date(start_time, tincrement * counter)
+                mjd_obs, new_date_obs = increment_date(start_time, tincrement * i)
                 newheader['DATE-OBS'] = new_date_obs
                 newheader['MJD-OBS'] = mjd_obs
                 newheader['JD_UTC'] = mjd_obs+2400000.5
-                fits.writeto(ipath, i, overwrite=True, header=newheader)
+                fits.writeto(ipath, img, overwrite=True, header=newheader)
                 if not using_tqdm or debug:
-                    print(f'Successfully sliced {ipath} with time increment {tincrement * counter} s. Prev time: {start_time}. new time: {new_date_obs}')
+                    print(f'Successfully sliced {ipath} with time increment {tincrement * i} s. Prev time: {start_time}. new time: {new_date_obs}')
             else:
-                fits.writeto(ipath, i, overwrite=True, header=header)
+                fits.writeto(ipath, img, overwrite=True, header=header)
                 if not using_tqdm or debug:
                     print(f'Successfully sliced {ipath} with no time increment.')
-            counter += 1
 
 def slice_all(work_dir, file_matching='*.fits', save_dir=None, skip_increment=True, tincrement=None):
     list_files = glob.glob(join(work_dir, file_matching))
