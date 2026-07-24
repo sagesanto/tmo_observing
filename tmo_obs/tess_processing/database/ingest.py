@@ -84,6 +84,11 @@ def build_observation_fields(obs_row: dict, obs_details: dict) -> dict:
         acquisition_timestamp=to_naive_utc(datetime.fromtimestamp(obs_row["AcqTimestamp"], tz=timezone.utc)),
         acq_num_1=obs_row["AcqNum1"],
         acq_num_2=obs_row["AcqNum2"],
+        cooler_on=cam_params["Cooler On"] == 'true',
+        target_temp=cam_params["Target Temp"],
+        front_housing_temp=cam_params["Temp Front Housing"],
+        rear_housing_temp=cam_params["Temp Rear Housing"],
+        camera_temp=obs_details.get('CamTemperature')
     )
 
 def ingest_md_db(target_db: MetadataDB, target_dat: MetadataDat, data_dir: str, schedule_path: str = None, force_ingest: bool = False, record_db_path=None):

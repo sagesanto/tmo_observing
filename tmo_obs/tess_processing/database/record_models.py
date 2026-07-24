@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -35,7 +35,7 @@ class Observation(Base):
     name: Mapped[str] = mapped_column(nullable=False)
     metadata_db_id: Mapped[int] = mapped_column(ForeignKey("metadata_dbs.id"), nullable=False)
     schedule_id: Mapped[Optional[int]] = mapped_column(ForeignKey("schedules.id"), nullable=True)
-    sequence_len: Mapped[int] = mapped_column(default=1)
+    sequence_len: Mapped[int] = mapped_column(Integer,default=1)
     obstime: Mapped[datetime] = mapped_column(nullable=False)
     rowid: Mapped[int] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column(nullable=False)
@@ -67,6 +67,12 @@ class Observation(Base):
     acquisition_timestamp: Mapped[datetime] = mapped_column(nullable=False)
     acq_num_1: Mapped[int] = mapped_column(nullable=False)
     acq_num_2: Mapped[int] = mapped_column(nullable=False)
+
+    cooler_on: Mapped[bool] = mapped_column(nullable=True)
+    target_temp: Mapped[float] = mapped_column(nullable=True)
+    front_housing_temp: Mapped[float] = mapped_column(nullable=True)
+    rear_housing_temp: Mapped[float] = mapped_column(nullable=True)
+    camera_temp: Mapped[float] = mapped_column(nullable=True)
 
     metadata_db: Mapped["MetadataDB"] = relationship(back_populates="observations")
     schedule: Mapped[Optional["Schedule"]] = relationship(back_populates="observations")
