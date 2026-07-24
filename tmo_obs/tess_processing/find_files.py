@@ -12,7 +12,7 @@ def is_dark(obs_details:dict):
 
 def is_bias(obs_details:dict):
     if "FILTER" not in obs_details: return False
-    return obs_details['FILTER'] == 'DARK' and obs_details['ExposureTime'] == 0 and "bias" in obs_details['Name'].lower()
+    return obs_details['FILTER'] == 'DARK' and obs_details['ExposureTime'] < 1e-5 and "bias" in obs_details['Name'].lower()
 
 def is_flat(obs_details:dict):
     if "FILTER" not in obs_details: return False
