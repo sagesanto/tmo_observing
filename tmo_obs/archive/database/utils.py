@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Any, Tuple
+from os.path import basename, dirname, splitext, join
 import matplotlib.pyplot as plt
 from sqlalchemy import select, func, and_, or_, not_, inspect
 from sqlalchemy.orm import joinedload
@@ -57,4 +58,8 @@ def query_as_csv(stmt, db, *serializer_args, serializer=standard_df_serializer, 
     """
     obs = db.execute(stmt).scalars().all()
     df = records_to_df(obs,*serializer_args, serializer=serializer, **serializer_kwargs)
-    return df    
+    return df
+
+def guess_binfile_path(obs:Observation):
+    dirpath = dirname(obs.metadata_db.filename)
+    return join(dirpath,f"{obs.acq_system_id}_{obs.acquisition_timestamp}_{obs.acq_num_1}_{obs.acq_num_2}.bin")    
