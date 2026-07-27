@@ -9,15 +9,12 @@ from pytz import timezone
 from datetime import datetime
 
 from tmo_obs.utils import parse_date_obs, write_date_obs
-from tmo_obs.tess_processing.database.sqlite_db import SQLiteDB
+from tmo_obs.archive.database.sqlite_db import SQLiteDB
 
 # what info do we care about?
 DAT_KEYWORDS = ['FILTER','RAWX','RAWY','Temperature','Sky','Focus']
 DB_KEYWORDS = ['Name','rowid','Description','ExposureTime','Frames','BinningSize','ROI_Width','ROI_Height','TelescopeRA','TelescopeDEC','ROI_StartX','ROI_StartY','Temperature','CameraName']
 
-def res_rows_to_dicts(row):
-    dictionary = [dict(r) for r in row if r]
-    return [{k: v for k, v in a.items() if v is not None} for a in dictionary if a]
 
 def parse_camera_param(value, value_type):
     try:

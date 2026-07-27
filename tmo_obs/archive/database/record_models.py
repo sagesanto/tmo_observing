@@ -8,7 +8,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 class Base(DeclarativeBase):
     pass
 
-class MetadataDB(Base):
+class MetadataDBRecord(Base):
     __tablename__ = "metadata_dbs"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -64,7 +64,7 @@ class Observation(Base):
     roi_height: Mapped[int] = mapped_column(nullable=False)
     
     acq_system_id: Mapped[int] = mapped_column(nullable=False)
-    acquisition_timestamp: Mapped[datetime] = mapped_column(nullable=False)
+    acquisition_timestamp: Mapped[int] = mapped_column(nullable=False)
     acq_num_1: Mapped[int] = mapped_column(nullable=False)
     acq_num_2: Mapped[int] = mapped_column(nullable=False)
 
@@ -74,7 +74,7 @@ class Observation(Base):
     rear_housing_temp: Mapped[float] = mapped_column(nullable=True)
     camera_temp: Mapped[float] = mapped_column(nullable=True)
 
-    metadata_db: Mapped["MetadataDB"] = relationship(back_populates="observations")
+    metadata_db: Mapped["MetadataDBRecord"] = relationship(back_populates="observations")
     schedule: Mapped[Optional["Schedule"]] = relationship(back_populates="observations")
     fits_files: Mapped[list["FitsFile"]] = relationship(back_populates="observation", cascade="all, delete-orphan")
 

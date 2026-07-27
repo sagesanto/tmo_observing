@@ -1,15 +1,16 @@
 import sys, os
-from os.path import dirname, exists, getmtime, getsize, join
+from os.path import dirname, exists, getmtime, getsize, join, abspath
 import glob
 from datetime import datetime, timezone
 from typing import Optional
 import numpy as np
 from sqlalchemy.orm import Session
 
-from tmo_obs.tess_processing.database.metadata import MetadataDat, MetadataDB, get_obs_details, read_schedule
-from tmo_obs.tess_processing.find_files import is_bias, is_dark, is_flat, is_science
-from tmo_obs.tess_processing.database.record_db import get_record_db
-from tmo_obs.tess_processing.database.record_models import FitsFile, Observation, Schedule, MetadataDB as RecordMetadataDB
+from tmo_obs.archive.calibs import is_bias, is_dark, is_flat
+from tmo_obs.archive.database.metadata import MetadataDat, MetadataDB, get_obs_details, read_schedule
+from tmo_obs.archive.calibs import is_science
+from tmo_obs.archive.database.record_db import get_record_db
+from tmo_obs.archive.database.record_models import FitsFile, Observation, Schedule, MetadataDBRecord as RecordMetadataDB
 
 
 def to_naive_utc(dt: datetime) -> datetime:
@@ -18,7 +19,7 @@ def to_naive_utc(dt: datetime) -> datetime:
     return dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 def find_fits_files(data_dir: str, name: str) -> list[str]:
-    paths = [join(data_dir,f) for f in os.listdir(data_dir) if f.endswith('fits') and name in f]
+    paths = [abspath(join(data_dir,f)) for f in os.listdir(data_dir) if f.endswith('fits') and name in f]
     return paths
 
 def get_db_file_stats(path: str) -> tuple[Optional[str], Optional[datetime]]:
@@ -81,7 +82,7 @@ def build_observation_fields(obs_row: dict, obs_details: dict) -> dict:
         roi_width=obs_details["ROI_Width"],
         roi_height=obs_details["ROI_Height"],
         acq_system_id=obs_row["AcqSystemID"],
-        acquisition_timestamp=to_naive_utc(datetime.fromtimestamp(obs_row["AcqTimestamp"], tz=timezone.utc)),
+        acquisition_timestamp=obs_row["AcqTimestamp"],
         acq_num_1=obs_row["AcqNum1"],
         acq_num_2=obs_row["AcqNum2"],
         cooler_on=cam_params["Cooler On"] == 'true',
@@ -134,7 +135,7 @@ def ingest_md_db(target_db: MetadataDB, target_dat: MetadataDat, data_dir: str, 
             # print(f"Getting observation details for observation {obs_row['Name']}")
             obs_details = get_obs_details(obs_row, target_db, target_dat, schedule, directory=data_dir)
             fields = build_observation_fields(obs_row, obs_details)
-            fields['sequence_len'] = sequence_count
+            fields['sequence_len'] = int(sequence_count)
             # print(f"Extracted information.")
 
             obs_schedule_path = obs_details.get("schedule_path")
@@ -176,7 +177,7 @@ def main():
     from tqdm import tqdm
 
     from tmo_obs.config import configure_logger, load_config
-    from tmo_obs.tess_processing.database.record_db import DEFAULT_DB_PATH
+    from tmo_obs.archive.database.record_db import DEFAULT_DB_PATH
 
     logger = configure_logger("ingest")
 

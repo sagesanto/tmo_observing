@@ -3,6 +3,7 @@ from pytz import UTC
 import pytz
 from astropy.time import Time
 from pandas.io import clipboard
+from pathlib import Path
 
 DATE_OBS_FORMAT = '%Y-%m-%dT%X.%f'
 
@@ -134,3 +135,8 @@ def parse_time_arg(s):
 
 def copy_to_clipboard(content:str):
     clipboard.copy(content)
+    
+
+def resolve_path(p):
+    # expand ~ in path, get abspath
+    return str(Path(p).expanduser().resolve())

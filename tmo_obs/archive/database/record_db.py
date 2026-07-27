@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from tmo_obs.tess_processing.database.record_models import Base
+from tmo_obs.archive.database.record_models import Base
 
 DEFAULT_DB_PATH = "obs_master.sqlite3"
 
