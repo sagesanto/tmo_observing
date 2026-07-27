@@ -17,6 +17,7 @@ FITS_PATH = join(dirname(__file__),'data','test_frame.fits')
         ('imhead', [FITS_PATH, '-k','DATE-OBS','-i',0]),
         ('imstat_deluxe', [FITS_PATH]),
         ('imstat_deluxe', [FITS_PATH,'-p']),
+        ('ingest', ['-h'])
     ],
 )
 def test_cli(tool, args):
