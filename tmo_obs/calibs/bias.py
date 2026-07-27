@@ -32,7 +32,7 @@ def main():
     parser = argparse.ArgumentParser(description="Create a superbias from provided cube")
     parser.add_argument('bias_path',type=str,help='Path to the bias cube')
     parser.add_argument('outpath',type=str,help='Path to the new superbias. Will be overwritten if exists.')
-    parser.add_argument('--extension',type=int,help='HDUL extension. Default 0')
+    parser.add_argument('--extension',type=int,default=0,help='HDUL extension. Default 0')
     args = parser.parse_args()
     ext = args.extension
     if not exists(args.bias_path):
@@ -42,8 +42,10 @@ def main():
     with fits.open(args.bias_path, memmap=False, lazy_load_hdus=True) as hdul:
         header = hdul[ext].header
         challenge(header["EXPTIME"] < 1e-5, f"File {args.bias_path} doesn't seem to be a bias because its exptime ({header['EXPTIME']}) is not near zero. Is this a bias?")
+    print(f'Making superdark for {args.bias_path}...')
     
     make_superbias(args.bias_path,args.outpath)
+    print(f'Done. Wrote to {args.outpath}')
     
 if __name__ == "__main__":
     main()
