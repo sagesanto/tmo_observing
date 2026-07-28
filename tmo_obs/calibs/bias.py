@@ -2,28 +2,13 @@ from os.path import exists, basename, dirname, join
 
 import numpy as np
 import astropy.io.fits as fits
-from astropy.nddata import CCDData
-import ccdproc
- 
-def compute_superbias(hdul,extension=0):
-    n_bias_frames = hdul[extension].shape[0]
-
-    superbias_ccd = ccdproc.combine(
-        ( CCDData(hdul[extension].section[j], unit='adu', dtype=np.float32) for j in range(n_bias_frames) ),
-        method='average',
-        sigma_clip=True,
-        sigma_clip_low_thresh=3,
-        sigma_clip_high_thresh=3,
-        sigma_clip_func=np.ma.average,
-        dtype=np.float32,
-    )
-    superbias = superbias_ccd.data.astype(np.float32)
-    
-    return superbias
-
+from astropy.stats import sigma_clip
+        
 def make_superbias(bias_cube_path,superbias_outpath,extension=0):
-    with fits.open(bias_cube_path, memmap=False, lazy_load_hdus=True) as hdul:
-        superbias = compute_superbias(hdul,extension)
+    with fits.open(bias_cube_path) as hdul:
+        cube = hdul[extension].data
+        clipped = sigma_clip(cube, sigma_lower=3, sigma_upper=3, axis=0, masked=True, copy=False)
+        superbias = np.ma.mean(clipped, axis=0).filled(np.nan)
         
         n_bias_frames = hdul[extension].shape[0]
         bias_header = hdul[extension].header.copy()
