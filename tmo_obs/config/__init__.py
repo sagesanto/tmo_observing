@@ -16,6 +16,8 @@ def get_stub_path():
     return join(stub_directory,'stub.toml')
     
 def get_config_path():
+    if os.getenv('TMO_OBS_CONFIG') is not None:
+        return os.getenv('TMO_OBS_CONFIG')
     stub_path = get_stub_path()
     if not os.path.exists(stub_path):
         shutil.copy(f"{stub_path}.example",stub_path)
