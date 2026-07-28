@@ -1,3 +1,5 @@
+from os.path import exists, basename, dirname, join
+
 import numpy as np
 import astropy.io.fits as fits
 from astropy.nddata import CCDData
@@ -5,10 +7,15 @@ import ccdproc
  
 def compute_superbias(hdul,extension=0):
     n_bias_frames = hdul[extension].shape[0]
-    bias_ccds = [CCDData(hdul[extension].section[j], unit='adu') for j in range(n_bias_frames)]
 
-    superbias_ccd = ccdproc.combine(bias_ccds,method='average',sigma_clip=True,
-        sigma_clip_low_thresh=3,sigma_clip_high_thresh=3,sigma_clip_func=np.ma.average,
+    superbias_ccd = ccdproc.combine(
+        ( CCDData(hdul[extension].section[j], unit='adu', dtype=np.float32) for j in range(n_bias_frames) ),
+        method='average',
+        sigma_clip=True,
+        sigma_clip_low_thresh=3,
+        sigma_clip_high_thresh=3,
+        sigma_clip_func=np.ma.average,
+        dtype=np.float32,
     )
     superbias = superbias_ccd.data.astype(np.float32)
     
@@ -24,6 +31,11 @@ def make_superbias(bias_cube_path,superbias_outpath,extension=0):
         bias_header.add_history(f'Superbias: mean+3sig-clip of {hdul[extension].shape[0]} frames from {bias_cube_path}')
         fits.writeto(superbias_outpath, superbias, bias_header, overwrite=True)
         
+def default_superbias_path(bias_path):
+    base = basename(bias_path)
+    dirs = dirname(bias_path)
+    return join(dirs,f"SUPERBIAS_{base}")
+        
 def main():
     from .utils import challenge
     import argparse
@@ -31,18 +43,19 @@ def main():
     
     parser = argparse.ArgumentParser(description="Create a superbias from provided cube")
     parser.add_argument('bias_path',type=str,help='Path to the bias cube')
-    parser.add_argument('outpath',type=str,help='Path to the new superbias. Will be overwritten if exists.')
+    parser.add_argument('--outpath',type=str,default=None,help='Path to the new superbias. Will be overwritten if exists. If not provided, is automatically named SUPERBIAS_{bias_path} and written out next to the provided bias')
     parser.add_argument('--extension',type=int,default=0,help='HDUL extension. Default 0')
     args = parser.parse_args()
     ext = args.extension
     if not exists(args.bias_path):
         parser.error(f"Can't find file '{args.bias_path}'")
-    
 
     with fits.open(args.bias_path, memmap=False, lazy_load_hdus=True) as hdul:
         header = hdul[ext].header
         challenge(header["EXPTIME"] < 1e-5, f"File {args.bias_path} doesn't seem to be a bias because its exptime ({header['EXPTIME']}) is not near zero. Is this a bias?")
-    print(f'Making superdark for {args.bias_path}...')
+    print(f'Making superbias for {args.bias_path}...')
+    if args.outpath is None:
+        args.outpath = default_superbias_path(args.bias_path)
     
     make_superbias(args.bias_path,args.outpath)
     print(f'Done. Wrote to {args.outpath}')
