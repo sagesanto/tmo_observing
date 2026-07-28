@@ -7,7 +7,7 @@ from rich.panel import Panel
 from rich.table import Table
 from datetime import timedelta
 
-from .queries import flexible_dataset_select, matches_configuration_stmt, darks_for_obs_stmt, biases_for_obs_stmt, flats_for_obs_stmt
+from .queries import flexible_dataset_select
 from sqlalchemy import select
 from tmo_obs.config import load_config
 from .database import DEFAULT_DB_PATH, get_record_db, Observation

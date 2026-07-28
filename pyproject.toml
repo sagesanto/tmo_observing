@@ -55,7 +55,7 @@ cconvert = 'tmo_obs.tools.cconvert:main'
 bbox = 'tmo_obs.tools.bbox:main'
 find_tess = 'tmo_obs.tess_processing.find_tess:main'
 ingest = 'tmo_obs.archive.ingest:main'
-superbias = 'tmo_obs.calibs.bias:main'
+superbias = 'tmo_obs.calibs.tools.superbias:main'
 find_calibs = 'tmo_obs.archive.find_calibs:main'
 find_data = 'tmo_obs.archive.find_data:main'
 
